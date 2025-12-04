@@ -55,7 +55,7 @@ Matrix::Matrix(Matrix&& other) noexcept : m_data(std::move(other.m_data)), m_siz
   other.m_size = {0, 0};
 }
 
-~Matrix::Matrix() = default;
+Matrix::~Matrix() = default;
 
 /*****************************************************************************************
  * Assignment Operators
@@ -128,8 +128,8 @@ real_t& Matrix::operator()(index_t i, index_t j)
   if (i == 0 || j == 0) {
     throw std::out_of_range("Indices cannot be zero (1-based indexing)");
   }
-  size_t row = (i > 0) ? (i - 1) : (m_size.rows + i);
-  size_t col = (j > 0) ? (j - 1) : (m_size.cols + j);
+  size_t row = (i > 0) ? static_cast<size_t>(i - 1) : (m_size.rows + static_cast<size_t>(i));
+  size_t col = (j > 0) ? static_cast<size_t>(j - 1) : (m_size.cols + static_cast<size_t>(j));
   if (row >= m_size.rows || col >= m_size.cols) {
     throw std::out_of_range("Index out of range");
   }
@@ -141,8 +141,8 @@ const real_t& Matrix::operator()(index_t i, index_t j) const
   if (i == 0 || j == 0) {
     throw std::out_of_range("Indices cannot be zero (1-based indexing)");
   }
-  size_t row = (i > 0) ? (i - 1) : (m_size.rows + i);
-  size_t col = (j > 0) ? (j - 1) : (m_size.cols + j);
+  size_t row = (i > 0) ? static_cast<size_t>(i - 1) : (m_size.rows + static_cast<size_t>(i));
+  size_t col = (j > 0) ? static_cast<size_t>(j - 1) : (m_size.cols + static_cast<size_t>(j));
   if (row >= m_size.rows || col >= m_size.cols) {
     throw std::out_of_range("Index out of range");
   }
@@ -332,18 +332,18 @@ bool_t Matrix::operator!=(const Matrix& rhs) const
 std::ostream& operator<<(std::ostream& os, const Matrix& mat)
 {
   os << "[";
-  for (size_t i = 0; i < mat.m_size.rows; ++i) {
-    if (i > 0)
+  for (size_t i = 1; i <= mat.rows(); ++i) {
+    if (i > 1)
       os << " ";
     os << "[";
-    for (size_t j = 0; j < mat.m_size.cols; ++j) {
-      os << mat.m_data[i * mat.m_size.cols + j];
-      if (j < mat.m_size.cols - 1) {
+    for (size_t j = 1; j <= mat.cols(); ++j) {
+      os << mat(static_cast<index_t>(i), static_cast<index_t>(j));
+      if (j < mat.cols()) {
         os << ", ";
       }
     }
     os << "]";
-    if (i < mat.m_size.rows - 1) {
+    if (i < mat.rows()) {
       os << "\n";
     }
   }
@@ -726,7 +726,7 @@ Matrix vcat(const Matrix& lhs, const Matrix& rhs)
   return result;
 }
 
-real_t norm(const Matrix& mat, real_t p = 2.0)
+real_t norm(const Matrix& mat, real_t p)
 {
   if (p == 2.0) {
     real_t sum = 0.0;

@@ -25,7 +25,7 @@ namespace sim
 
 Vector::Vector() : m_data() {}
 
-explicit Vector::Vector(size_t n) : m_data(n, 0.0) {}
+Vector::Vector(size_t n) : m_data(n, 0.0) {}
 
 Vector::Vector(std::initializer_list<real_t> values) : m_data(values) {}
 
@@ -103,7 +103,7 @@ real_t& Vector::operator()(index_t i)
   if (i == 0) {
     throw std::out_of_range("Index cannot be zero (1-based indexing)");
   }
-  size_t idx = (i > 0) ? (i - 1) : (m_data.size() + i);
+  size_t idx = (i > 0) ? static_cast<size_t>(i - 1) : (m_data.size() + static_cast<size_t>(i));
   if (idx >= m_data.size()) {
     throw std::out_of_range("Index out of range");
   }
@@ -115,7 +115,7 @@ const real_t& Vector::operator()(index_t i) const
   if (i == 0) {
     throw std::out_of_range("Index cannot be zero (1-based indexing)");
   }
-  size_t idx = (i > 0) ? (i - 1) : (m_data.size() + i);
+  size_t idx = (i > 0) ? static_cast<size_t>(i - 1) : (m_data.size() + static_cast<size_t>(i));
   if (idx >= m_data.size()) {
     throw std::out_of_range("Index out of range");
   }
@@ -357,7 +357,7 @@ bool_t isEmpty(const Vector& vec)
   return vec.isEmpty();
 }
 
-real_t norm(const Vector& vec, real_t p = 2.0)
+real_t norm(const Vector& vec, real_t p)
 {
   if (vec.isEmpty()) {
     return 0.0;

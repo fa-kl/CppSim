@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <ostream>
 #include <vector>
 
 #include "Vector.hpp"
@@ -65,7 +66,7 @@ public:
    * @param rows Number of rows.
    * @param cols Number of columns.
    */
-  Matrix(const Vector& vec, size_t rows, size_t cols) : m_data(rows * cols), m_size({rows, cols});
+  Matrix(const Vector& vec, size_t rows, size_t cols);
 
   /**
    * @brief Copy constructor.
@@ -151,7 +152,7 @@ public:
    * @param i Linear index.
    * @return Const reference to element at index i.
    */
-  const real_t& operator[](size_t i);
+  const real_t& operator[](size_t i) const;
 
   /**
    * @brief Access element at row i, column j (1-based indexing, supports negative indices).
