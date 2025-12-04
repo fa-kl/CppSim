@@ -38,16 +38,23 @@ add_compile_options(
 # Dependencies
 # ---------------------------------------------------------------------------------------
 
-# Find SFML for graphics
-find_package(SFML 2.5 COMPONENTS graphics window system REQUIRED)
+# Find SDL2
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(SDL2 REQUIRED sdl2)
 
 # ---------------------------------------------------------------------------------------
 # Sources & Headers
 # ---------------------------------------------------------------------------------------
 set(MAIN_TARGET Main)
 set(INCLUDE_DIR inc/)
-file(GLOB SOURCES src/)
+
+# Collect all .cpp sources in src/
+file(GLOB SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
 add_executable(${MAIN_TARGET} main.cpp ${SOURCES})
 target_include_directories(${MAIN_TARGET} PRIVATE ${INCLUDE_DIR})
-target_link_libraries(${MAIN_TARGET} PRIVATE sfml-graphics sfml-window sfml-system)
+
+# Link SDL2
+target_link_libraries(${MAIN_TARGET} ${SDL2_LIBRARIES})
+target_include_directories(${MAIN_TARGET} PRIVATE ${SDL2_INCLUDE_DIRS})
+target_compile_options(${MAIN_TARGET} PRIVATE ${SDL2_CFLAGS_OTHER})
