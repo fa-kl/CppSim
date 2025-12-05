@@ -1,43 +1,14 @@
 
 #include "Renderer.hpp"
 
+#include <cmath>
 #include <stdexcept>
 #include <string>
 
 namespace sim
 {
 
-#pragma region PixelPosition
-
-PixelPosition operator+(PixelPosition px1, const PixelPosition& px2)
-{
-  px1.x += px2.x;
-  px1.y += px2.y;
-  return px1;
-}
-
-PixelPosition operator-(PixelPosition px1, const PixelPosition& px2)
-{
-  px1.x -= px2.x;
-  px1.y -= px2.y;
-  return px1;
-}
-
-PixelPosition operator*(PixelPosition px, const int_t& k)
-{
-  px.x *= static_cast<uint_t>(k);
-  px.y *= static_cast<uint_t>(k);
-  return px;
-}
-
-PixelPosition operator*(const int_t& k, PixelPosition px)
-{
-  px.x *= static_cast<uint_t>(k);
-  px.y *= static_cast<uint_t>(k);
-  return px;
-}
-
-#pragma endregion
+#pragma region Color
 
 #pragma region Color
 
@@ -110,14 +81,15 @@ const Color blackAlpha = {0, 0, 0, 127};
 
 #pragma region FrameBuffer
 
-FrameBuffer::FrameBuffer(uint_t width, uint_t height) : m_width(width), m_height(height), m_pixel_colors(width * height)
+FrameBuffer::FrameBuffer(int_t width, int_t height)
+    : m_width(width), m_height(height), m_pixel_colors(static_cast<uint_t>(width * height))
 {
 }
 
 Color& FrameBuffer::operator[](PixelPosition px)
 {
-  if (px.x < m_width && px.y < m_height) {
-    return m_pixel_colors[px.y * m_width + px.x];
+  if (0 <= px.x && px.x < m_width && 0 <= px.y && px.y < m_height) {
+    return m_pixel_colors[static_cast<uint_t>(px.y * m_width + px.x)];
   }
   std::string pixel = "(" + std::to_string(px.x) + ", " + std::to_string(px.y) + ")";
   std::string window_size = "(" + std::to_string(m_width) + ", " + std::to_string(m_height) + ")";
@@ -127,8 +99,8 @@ Color& FrameBuffer::operator[](PixelPosition px)
 
 const Color& FrameBuffer::operator[](PixelPosition px) const
 {
-  if (px.x < m_width && px.y < m_height) {
-    return m_pixel_colors[px.y * m_width + px.x];
+  if (0 <= px.x && px.x < m_width && 0 <= px.y && px.y < m_height) {
+    return m_pixel_colors[static_cast<uint_t>(px.y * m_width + px.x)];
   }
   std::string pixel = "(" + std::to_string(px.x) + ", " + std::to_string(px.y) + ")";
   std::string window_size = "(" + std::to_string(m_width) + ", " + std::to_string(m_height) + ")";
@@ -141,11 +113,11 @@ void FrameBuffer::clear(const Color& color)
   std::fill(m_pixel_colors.begin(), m_pixel_colors.end(), color);
 }
 
-uint_t FrameBuffer::getWidth() const
+int_t FrameBuffer::getWidth() const
 {
   return m_width;
 }
-uint_t FrameBuffer::getHeight() const
+int_t FrameBuffer::getHeight() const
 {
   return m_height;
 }
@@ -159,31 +131,87 @@ const void* FrameBuffer::getRawData() const
 
 #pragma region Renderer
 
-Renderer::Renderer(FrameBuffer& fb) : m_buffer(fb) {}
-
-void Renderer::drawLine(const PixelPosition& start, const PixelPosition& end, uint_t width, const Color& color)
+PixelPosition Renderer::worldToPixel(const Vector& worldPos) const
 {
-  int_t x0 = static_cast<int_t>(start.x);
-  int_t y0 = static_cast<int_t>(start.y);
-  int_t x1 = static_cast<int_t>(end.x);
-  int_t y1 = static_cast<int_t>(end.y);
+  if (worldPos.length() != 2) {
+    throw std::invalid_argument("Vector must be 2D for rendering");
+  }
+  int_t px = m_center.x + static_cast<int_t>(std::round(worldPos[0] * m_scale));
+  int_t py = m_center.y - static_cast<int_t>(std::round(worldPos[1] * m_scale));
+  return {px, py};
+}
+
+Renderer::Renderer(int_t width, int_t height, real_t scale)
+    : m_buffer(width, height),
+      m_scale(scale),
+      m_center({width / 2, height / 2}),
+      m_grid_spacing(static_cast<int_t>(scale)),
+      m_width(width),
+      m_height(height)
+{
+  if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+    throw std::runtime_error("SDL init failed: " + std::string(SDL_GetError()));
+  }
+  m_window = SDL_CreateWindow("CppSim Renderer",
+                              SDL_WINDOWPOS_CENTERED,
+                              SDL_WINDOWPOS_CENTERED,
+                              static_cast<int>(width),
+                              static_cast<int>(height),
+                              SDL_WINDOW_SHOWN);
+
+  if (!m_window) {
+    throw std::runtime_error("Window creation failed: " + std::string(SDL_GetError()));
+  }
+  m_SDLRenderer = SDL_CreateRenderer(m_window, -1, SDL_RENDERER_ACCELERATED);
+  if (!m_SDLRenderer) {
+    throw std::runtime_error("Renderer creation failed: " + std::string(SDL_GetError()));
+  }
+  m_texture = SDL_CreateTexture(m_SDLRenderer,
+                                SDL_PIXELFORMAT_ABGR8888,
+                                SDL_TEXTUREACCESS_STREAMING,
+                                static_cast<int>(width),
+                                static_cast<int>(height));
+  if (!m_texture) {
+    throw std::runtime_error("Texture creation failed: " + std::string(SDL_GetError()));
+  }
+}
+
+Renderer::~Renderer()
+{
+  if (m_texture)
+    SDL_DestroyTexture(m_texture);
+  if (m_SDLRenderer)
+    SDL_DestroyRenderer(m_SDLRenderer);
+  if (m_window)
+    SDL_DestroyWindow(m_window);
+  SDL_Quit();
+}
+
+void Renderer::drawLine(const Vector& start, const Vector& end, uint_t widthPixels, const Color& color)
+{
+  PixelPosition startPx = worldToPixel(start);
+  PixelPosition endPx = worldToPixel(end);
+
+  int_t x0 = startPx.x;
+  int_t y0 = startPx.y;
+  int_t x1 = endPx.x;
+  int_t y1 = endPx.y;
   int_t dx = std::abs(x1 - x0);
   int_t dy = std::abs(y1 - y0);
   int_t sx = (x0 < x1) ? 1 : -1;
   int_t sy = (y0 < y1) ? 1 : -1;
   int_t err = dx - dy;
 
-  width = 2 * (width - 1) + 1;
-  int_t halfWidth = static_cast<int_t>(width) / 2;
+  widthPixels = 2 * (widthPixels - 1) + 1;
+  int_t halfWidth = static_cast<int_t>(widthPixels) / 2;
 
   while (true) {
     for (int_t w = -halfWidth; w <= halfWidth; w++) {
       for (int_t h = -halfWidth; h <= halfWidth; h++) {
         int_t px = x0 + w;
         int_t py = y0 + h;
-        if (px >= 0 && py >= 0 && static_cast<uint_t>(px) < m_buffer.getWidth() &&
-            static_cast<uint_t>(py) < m_buffer.getHeight()) {
-          PixelPosition pixelpos = {static_cast<uint_t>(px), static_cast<uint_t>(py)};
+        if (px >= 0 && py >= 0 && px < m_buffer.getWidth() && py < m_buffer.getHeight()) {
+          PixelPosition pixelpos = {px, py};
           m_buffer[pixelpos] = color;
         }
       }
@@ -203,19 +231,18 @@ void Renderer::drawLine(const PixelPosition& start, const PixelPosition& end, ui
   }
 }
 
-void Renderer::drawCircle(const PixelPosition& center, const real_t& radius, const Color& color)
+void Renderer::drawCircle(const Vector& center, real_t radius, const Color& color)
 {
-  int_t cx = static_cast<int_t>(center.x);
-  int_t cy = static_cast<int_t>(center.y);
-  int_t r = static_cast<int_t>(radius);
-  for (int_t y = -r; y <= r; y++) {
-    for (int_t x = -r; x <= r; x++) {
-      if (x * x + y * y <= r * r) {
-        int_t px = cx + x;
-        int_t py = cy + y;
-        if (px >= 0 && py >= 0 && static_cast<uint_t>(px) < m_buffer.getWidth() &&
-            static_cast<uint_t>(py) < m_buffer.getHeight()) {
-          PixelPosition pixelpos = {static_cast<uint_t>(px), static_cast<uint_t>(py)};
+  PixelPosition centerPx = worldToPixel(center);
+  int_t radiusPx = static_cast<int_t>(std::round(radius * m_scale));
+
+  for (int_t y = -radiusPx; y <= radiusPx; y++) {
+    for (int_t x = -radiusPx; x <= radiusPx; x++) {
+      if (x * x + y * y <= radiusPx * radiusPx) {
+        int_t px = centerPx.x + x;
+        int_t py = centerPx.y + y;
+        if (px >= 0 && py >= 0 && px < m_buffer.getWidth() && py < m_buffer.getHeight()) {
+          PixelPosition pixelpos = {px, py};
           m_buffer[pixelpos] = color;
         }
       }
@@ -223,79 +250,77 @@ void Renderer::drawCircle(const PixelPosition& center, const real_t& radius, con
   }
 }
 
-void Renderer::drawPolygon(const std::vector<PixelPosition>& vertices, const uint_t& lineWidth, const Color& color)
+void Renderer::drawPolygon(const std::vector<Vector>& vertices, uint_t widthPixels, const Color& color)
 {
   if (vertices.size() < 3) {
     return;
   }
   for (size_t i = 0; i < vertices.size(); i++) {
     size_t next = (i + 1) % vertices.size();
-    drawLine(vertices[i], vertices[next], lineWidth, color);
+    drawLine(vertices[i], vertices[next], widthPixels, color);
   }
 }
 
-#pragma endregion
-
-#pragma region Window
-
-Window::Window(uint_t w, uint_t h) : width(w), height(h)
+void Renderer::drawArrow(const Vector& start, const Vector& end, uint_t widthPixels, const Color& color)
 {
-  if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-    throw std::runtime_error("SDL init failed: " + std::string(SDL_GetError()));
-  }
-  window = SDL_CreateWindow("Custom 2D Renderer",
-                            SDL_WINDOWPOS_CENTERED,
-                            SDL_WINDOWPOS_CENTERED,
-                            static_cast<int>(width),
-                            static_cast<int>(height),
-                            SDL_WINDOW_SHOWN);
+  drawLine(start, end, widthPixels, color);
+  // TODO: Implement arrowhead drawing
+}
 
-  if (!window) {
-    throw std::runtime_error("Window creation failed: " + std::string(SDL_GetError()));
+void Renderer::drawGrid(uint_t widthPixels, const Color& color)
+{
+  real_t worldWidth = static_cast<real_t>(m_width) / m_scale;
+  real_t worldHeight = static_cast<real_t>(m_height) / m_scale;
+
+  int_t numLinesX = static_cast<int_t>(std::ceil(worldWidth / 2.0));
+  int_t numLinesY = static_cast<int_t>(std::ceil(worldHeight / 2.0));
+
+  // Draw vertical lines (parallel to Y-axis)
+  for (int_t i = -numLinesX; i <= numLinesX; i++) {
+    real_t x = static_cast<real_t>(i);
+    Vector top = {x, worldHeight / 2.0};
+    Vector bottom = {x, -worldHeight / 2.0};
+    drawLine(top, bottom, widthPixels, color);
   }
-  sdlRenderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-  if (!sdlRenderer) {
-    throw std::runtime_error("Renderer creation failed: " + std::string(SDL_GetError()));
-  }
-  texture = SDL_CreateTexture(sdlRenderer,
-                              SDL_PIXELFORMAT_ABGR8888,
-                              SDL_TEXTUREACCESS_STREAMING,
-                              static_cast<int>(width),
-                              static_cast<int>(height));
-  if (!texture) {
-    throw std::runtime_error("Texture creation failed: " + std::string(SDL_GetError()));
+
+  // Draw horizontal lines (parallel to X-axis)
+  for (int_t j = -numLinesY; j <= numLinesY; j++) {
+    real_t y = static_cast<real_t>(j);
+    Vector left = {-worldWidth / 2.0, y};
+    Vector right = {worldWidth / 2.0, y};
+    drawLine(left, right, widthPixels, color);
   }
 }
 
-Window::~Window()
+void Renderer::drawWorldFrame(uint_t widthPixels)
 {
-  if (texture)
-    SDL_DestroyTexture(texture);
-  if (sdlRenderer)
-    SDL_DestroyRenderer(sdlRenderer);
-  if (window)
-    SDL_DestroyWindow(window);
-  SDL_Quit();
+  Vector origin = {0.0, 0.0};
+  Vector xAxis = {1.0, 0.0};
+  Vector yAxis = {0.0, 1.0};
+  drawLine(origin, xAxis, widthPixels, red);
+  drawLine(origin, yAxis, widthPixels, blue);
 }
 
-void Window::display(const FrameBuffer& frameBuffer)
+void Renderer::display()
 {
-  SDL_UpdateTexture(texture, nullptr, frameBuffer.getRawData(), static_cast<int>(width * 4));
-  SDL_SetRenderDrawColor(sdlRenderer, 0, 0, 0, 255);
-  SDL_RenderClear(sdlRenderer);
-  SDL_RenderCopy(sdlRenderer, texture, nullptr, nullptr);
-  SDL_RenderPresent(sdlRenderer);
-}
+  bool shouldClose = false;
+  while (!shouldClose) {
+    // Update texture with framebuffer
+    SDL_UpdateTexture(m_texture, nullptr, m_buffer.getRawData(), static_cast<int>(m_buffer.getWidth() * 4));
+    SDL_SetRenderDrawColor(m_SDLRenderer, 0, 0, 0, 255);
+    SDL_RenderClear(m_SDLRenderer);
+    SDL_RenderCopy(m_SDLRenderer, m_texture, nullptr, nullptr);
+    SDL_RenderPresent(m_SDLRenderer);
 
-bool Window::shouldClose()
-{
-  SDL_Event event;
-  while (SDL_PollEvent(&event)) {
-    if (event.type == SDL_QUIT || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)) {
-      return true;
+    // Handle events
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+      if (event.type == SDL_QUIT || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)) {
+        shouldClose = true;
+      }
     }
+    SDL_Delay(16);  // ~60 FPS
   }
-  return false;
 }
 
 #pragma endregion

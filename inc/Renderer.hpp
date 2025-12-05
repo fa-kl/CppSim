@@ -10,6 +10,9 @@
 
 #pragma once
 
+#include <iostream>
+
+#include "Vector.hpp"
 #include "types.hpp"
 
 #ifdef __linux__
@@ -24,32 +27,12 @@ namespace sim
 #pragma region PixelPosition
 
 /**
- * @brief A type for a pixel position.
+ * @brief Internal type for pixel position (framebuffer indexing only).
  */
 typedef struct {
-  uint_t x;
-  uint_t y;
+  int_t x;
+  int_t y;
 } PixelPosition;
-
-/**
- * @brief Add two pixel positions.
- */
-PixelPosition operator+(PixelPosition px1, const PixelPosition& px2);
-
-/**
- * @brief Subtract two pixel positions.
- */
-PixelPosition operator-(PixelPosition px1, const PixelPosition& px2);
-
-/**
- * @brief Multiply a pixel position with a scalar integer.
- */
-PixelPosition operator*(PixelPosition px, const int_t& k);
-
-/**
- * @brief Multiply a pixel position with a scalar integer.
- */
-PixelPosition operator*(const int_t& k, PixelPosition px);
 
 #pragma endregion
 
@@ -121,37 +104,20 @@ extern const Color blackAlpha;
 class FrameBuffer
 {
 protected:
-  uint_t m_width, m_height;
+  int_t m_width, m_height;
   std::vector<Color> m_pixel_colors;
 
 public:
-  FrameBuffer(uint_t width, uint_t height);
+  FrameBuffer(int_t width, int_t height);
 
   Color& operator[](PixelPosition px);
   const Color& operator[](PixelPosition px) const;
 
   void clear(const Color& color = black);
 
-  uint_t getWidth() const;
-  uint_t getHeight() const;
+  int_t getWidth() const;
+  int_t getHeight() const;
   const void* getRawData() const;
-};
-
-#pragma endregion
-
-#pragma region Renderer
-
-class Renderer
-{
-protected:
-  FrameBuffer& m_buffer;
-
-public:
-  Renderer(FrameBuffer& fb);
-
-  void drawLine(const PixelPosition& start, const PixelPosition& end, uint_t width, const Color& color);
-  void drawCircle(const PixelPosition& center, const real_t& radius, const Color& color);
-  void drawPolygon(const std::vector<PixelPosition>& vertices, const uint_t& lineWidth, const Color& color);
 };
 
 #pragma endregion
@@ -161,18 +127,79 @@ public:
 class Window
 {
 private:
-  SDL_Window* window;
-  SDL_Renderer* sdlRenderer;
-  SDL_Texture* texture;
-  uint_t width, height;
+  SDL_Window* m_window;
+  SDL_Renderer* m_SDLRenderer;
+  SDL_Texture* m_Texture;
+  int_t m_width, m_height;
 
 public:
-  Window(uint_t w, uint_t h);
+  Window(int_t w, int_t h);
 
   ~Window();
 
   void display(const FrameBuffer& frameBuffer);
   bool shouldClose();
+};
+
+#pragma endregion
+
+#pragma region Renderer
+
+class Renderer
+{
+private:
+  // FrameBuffer and SDL members (formerly Window)
+  FrameBuffer m_buffer;
+  SDL_Window* m_window;
+  SDL_Renderer* m_SDLRenderer;
+  SDL_Texture* m_texture;
+
+  // Helper members for coordinate system and scaling
+  real_t m_scale;           // Pixels per unit (e.g., 100 pixels per 1 unit)
+  PixelPosition m_center;   // Center of the viewport in pixels
+  int_t m_grid_spacing;     // d: grid spacing in pixels (1/scale)
+  int_t m_width, m_height;  // window width & height
+
+  /**
+   * @brief Convert world coordinates (Vector) to pixel coordinates.
+   * @param worldPos 2D world position vector.
+   * @return Pixel position for framebuffer access.
+   * @throws std::invalid_argument if vector is not 2D.
+   */
+  PixelPosition worldToPixel(const Vector& worldPos) const;
+
+public:
+  /**
+   * @brief Construct a Renderer with given width, height and scaling.
+   *
+   * @param width Window width in pixels.
+   * @param height Window height in pixels.
+   * @param scale Pixels per unit (default: 100).
+   */
+  Renderer(int_t width, int_t height, real_t scale = 100.0);
+
+  /**
+   * @brief Destructor.
+   */
+  ~Renderer();
+
+  void drawLine(const Vector& start, const Vector& end, uint_t widthPixels, const Color& color);
+  void drawCircle(const Vector& center, real_t radius, const Color& color);
+  void drawPolygon(const std::vector<Vector>& vertices, uint_t widthPixels, const Color& color);
+  void drawArrow(const Vector& start, const Vector& end, uint_t widthPixels, const Color& color);
+  void drawGrid(uint_t widthPixels = 1, const Color& color = gray);
+  void drawWorldFrame(uint_t widthPixels = 2);
+
+  /**
+   * @brief Display the rendered frame and handle events until window closes.
+   *
+   * @details This is a blocking call that shows the window and runs the
+   * event loop, processing SDL events and checking if the window should close.
+   * The frame rate is capped at ~60 FPS. Call with no arguments.
+   */
+  void display();
+
+  void clear(const Color& color = black) { m_buffer.clear(color); }
 };
 
 #pragma endregion
