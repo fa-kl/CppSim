@@ -1,7 +1,7 @@
 /*****************************************************************************************
  * @file: Rotation.hpp
  *
- * @brief: This file provides rotation matrices in the form of a Rotation class.
+ * @brief: This file provides rotation matrices in the form of a templated Rotation class.
  *
  * @author: fakl
  * @date: December 2025
@@ -10,6 +10,11 @@
 
 #pragma once
 
+#include <cmath>
+#include <stdexcept>
+#include <type_traits>
+#include <vector>
+
 #include "Matrix.hpp"
 #include "Vector.hpp"
 #include "types.hpp"
@@ -17,111 +22,119 @@
 namespace sim
 {
 
+template <size_t N>
 class Transform;
 
-/**
- * @brief A class representing 2D rotations.
- *
- * @details This class encapsulates 2D rotation transformations using a 2x2 rotation matrix.
- * Rotations can be composed, inverted, and applied to vectors. The rotation angle is measured
- * in radians, counter-clockwise from the positive x-axis.
- */
+template <size_t N>
 class Rotation
 {
 protected:
-  /**
-   * @brief The 2x2 rotation matrix.
-   */
   Matrix m_matrix;
 
 public:
-  /**
-   * @brief Construct a rotation from an angle.
-   *
-   * @param angle Rotation angle in radians (counter-clockwise).
-   */
-  explicit Rotation(real_t angle);
+  Rotation() = default;
 
-  /**
-   * @brief Construct a rotation from a 2x2 matrix.
-   *
-   * @param mat 2x2 rotation matrix.
-   * @throws std::invalid_argument If matrix is not 2x2.
-   */
-  explicit Rotation(const Matrix& mat);
+  // 2D constructor: angle
+  template <size_t M = N>
+  explicit Rotation(real_t angle, typename std::enable_if<M == 2>::type* = 0)
+      : m_matrix({{std::cos(angle), -std::sin(angle)}, {std::sin(angle), std::cos(angle)}})
+  {
+  }
 
-  /**
-   * @brief Get the rotation angle.
-   *
-   * @return Rotation angle in radians (counter-clockwise).
-   */
-  real_t angle() const;
+  // 3D constructor: roll, pitch, yaw
+  template <size_t M = N>
+  Rotation(real_t roll, real_t pitch, real_t yaw, typename std::enable_if<M == 3>::type* = 0)
+  {
+    m_matrix = (Rz(yaw) * Ry(pitch) * Rx(roll)).m_matrix;
+  }
 
-  /**
-   * @brief Get the unit vectors defining this rotation.
-   *
-   * @details Returns the rotated standard basis vectors [e1, e2] where e1 is the
-   * rotated x-axis and e2 is the rotated y-axis.
-   *
-   * @return Matrix with columns representing the rotated unit vectors.
-   */
-  Matrix unitVectors() const;
+  explicit Rotation(const Matrix& mat)
+  {
+    dimension_t expected = {N, N};
+    if (size(mat) != expected) {
+      throw std::invalid_argument("Incompatible dimension for rotation matrix");
+    }
+    m_matrix = mat;
+  }
 
-  friend Vector operator*(const Rotation& R, const Vector& v);
-  friend Rotation operator*(const Rotation& R1, const Rotation& R2);
-  friend Transform operator*(const Transform& T, const Rotation& R);
-  friend Transform operator*(const Rotation& R, const Transform& T);
-  friend Rotation inv(const Rotation& R);
-  friend Matrix unitVectors(const Rotation& R);
+  // 2D: single angle
+  template <size_t M = N>
+  typename std::enable_if<M == 2, real_t>::type angle() const
+  {
+    return std::atan2(m_matrix(2, 1), m_matrix(1, 1));
+  }
+
+  // 3D: return Euler angles as Vector (roll, pitch, yaw)
+  template <size_t M = N>
+  typename std::enable_if<M == 3, Vector>::type eulerAngles() const
+  {
+    real_t sy = -m_matrix(3, 1);
+    real_t cy = std::sqrt(m_matrix(1, 1) * m_matrix(1, 1) + m_matrix(2, 1) * m_matrix(2, 1));
+    real_t yaw = std::atan2(m_matrix(2, 1), m_matrix(1, 1));
+    real_t pitch = std::atan2(sy, cy);
+    real_t roll = std::atan2(m_matrix(3, 2), m_matrix(3, 3));
+    return Vector({roll, pitch, yaw});
+  }
+
+  std::vector<Vector> unitVectors() const
+  {
+    std::vector<Vector> res;
+    for (index_t c = 1; c <= static_cast<index_t>(N); ++c) {
+      Vector col(N);
+      for (index_t r = 1; r <= static_cast<index_t>(N); ++r) {
+        col(r) = m_matrix(r, c);
+      }
+      res.push_back(col);
+    }
+    return res;
+  }
+
+  friend Vector operator*(const Rotation& R, const Vector& v) { return R.m_matrix * v; }
+
+  friend Rotation operator*(const Rotation& R1, const Rotation& R2) { return Rotation(R1.m_matrix * R2.m_matrix); }
+
+  friend Rotation inv(const Rotation& R) { return Rotation(transpose(R.m_matrix)); }
+
+  template <size_t M = N>
+  static typename std::enable_if<M == 3, Rotation>::type Rx(real_t roll)
+  {
+    Matrix m({{1, 0, 0}, {0, std::cos(roll), -std::sin(roll)}, {0, std::sin(roll), std::cos(roll)}});
+    return Rotation(m);
+  }
+
+  template <size_t M = N>
+  static typename std::enable_if<M == 3, Rotation>::type Ry(real_t pitch)
+  {
+    Matrix m({{std::cos(pitch), 0, std::sin(pitch)}, {0, 1, 0}, {-std::sin(pitch), 0, std::cos(pitch)}});
+    return Rotation(m);
+  }
+
+  template <size_t M = N>
+  static typename std::enable_if<M == 3, Rotation>::type Rz(real_t yaw)
+  {
+    Matrix m({{std::cos(yaw), -std::sin(yaw), 0}, {std::sin(yaw), std::cos(yaw), 0}, {0, 0, 1}});
+    return Rotation(m);
+  }
 };
 
-/**
- * @brief Get the rotation angle.
- *
- * @param R Rotation object.
- * @return Rotation angle in radians (counter-clockwise).
- */
-real_t angle(const Rotation& R);
+inline real_t angle(const Rotation<2>& R)
+{
+  return R.angle();
+}
 
-/**
- * @brief Get the unit vectors defining the rotation.
- *
- * @details Returns the rotated standard basis vectors [e1, e2] where e1 is the
- * rotated x-axis and e2 is the rotated y-axis.
- *
- * @param R Rotation object.
- * @return Matrix with columns representing the rotated unit vectors.
- */
-Matrix unitVectors(const Rotation& R);
+inline Vector eulerAngles(const Rotation<3>& R)
+{
+  return R.eulerAngles();
+}
 
-/**
- * @brief Apply rotation to a vector.
- *
- * @param R Rotation object.
- * @param v Vector to rotate.
- * @return Rotated vector.
- */
-Vector operator*(const Rotation& R, const Vector& v);
+inline std::vector<Vector> unitVectors(const Rotation<2>& R)
+{
+  return R.unitVectors();
+}
 
-/**
- * @brief Compose two rotations.
- *
- * @details Computes R1 * R2, which applies R2 first, then R1.
- *
- * @param R1 First rotation.
- * @param R2 Second rotation.
- * @return Composed rotation.
- */
-Rotation operator*(const Rotation& R1, const Rotation& R2);
-
-/**
- * @brief Compute the inverse of a rotation.
- *
- * @details The inverse of a rotation matrix is its transpose.
- *
- * @param R Rotation object.
- * @return Inverse rotation.
- */
-Rotation inv(const Rotation& R);
+inline std::vector<Vector> unitVectors(const Rotation<3>& R)
+{
+  return R.unitVectors();
+}
 
 }  // namespace sim

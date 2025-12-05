@@ -19,14 +19,14 @@ namespace sim
 {
 
 /**
- * @brief Abstract base class for all geometric shapes.
+ * @brief Abstract base class for all geometric 3D shapes.
  *
  * @details All concrete shapes must implement:
- * - area() - Compute the area
+ * - volume() - Compute the volume
  * - centroid() - Compute the centroid (center of mass for uniform density)
- * - inertia(ρ) - Compute moment of inertia about centroid for density ρ
- * - vertices() - Get vertices for visualization and collision detection
- * - containsPoint(point) - Check if a point is inside the shape
+ * - inertia(ρ) - Compute moment of inertia about centroid for density ρ (3D meaning)
+ * - vertices() - Get vertices for visualization and collision detection (3D points)
+ * - containsPoint(point) - Check if a point is inside the shape (3D)
  */
 class Shape
 {
@@ -37,11 +37,11 @@ public:
   virtual ~Shape() = default;
 
   /**
-   * @brief Compute the area of the shape.
+   * @brief Compute the volume of the 3D shape.
    *
-   * @return Area of the shape.
+   * @return Volume of the shape.
    */
-  virtual real_t area() const = 0;
+  virtual real_t volume() const = 0;
 
   /**
    * @brief Compute the centroid of the shape.
@@ -53,20 +53,21 @@ public:
   virtual Vector centroid() const = 0;
 
   /**
-   * @brief Compute the moment of inertia about the centroid.
+   * @brief Compute the (scalar) moment of inertia about the centroid.
    *
-   * @param rho Material density (mass per unit area).
-   * @return Moment of inertia about the z-axis through centroid.
+   * @param rho Material density (mass per unit volume).
+   * @return Scalar moment of inertia (for uniform density) about principal axes - for simple shapes this returns a
+   * representative value.
    */
   virtual real_t inertia(real_t rho) const = 0;
 
   /**
-   * @brief Get the vertices of the shape for visualization.
+   * @brief Get representative vertices of the shape for visualization.
    *
-   * @details Returns vertices in counter-clockwise order in shape-local coordinates.
-   * For curved shapes, returns an approximation.
+   * @details Returns vertices in shape-local coordinates. For curved shapes,
+   * returns an approximation (e.g. tessellated sphere).
    *
-   * @return Vector of vertex positions.
+   * @return Vector of 3D vertex positions.
    */
   virtual std::vector<Vector> vertices() const = 0;
 
@@ -80,273 +81,153 @@ public:
 };
 
 /**
- * @brief A circle shape defined by its radius.
+ * @brief A sphere shape defined by its radius.
  *
- * @details Represents a circular shape centered at the origin in local coordinates.
+ * @details Represents a sphere centered at the origin in local coordinates.
  */
-class Circle : public Shape
+class Sphere : public Shape
 {
 protected:
   /**
-   * @brief Radius of the circle.
+   * @brief Radius of the sphere.
    */
   real_t m_radius;
 
 public:
   /**
-   * @brief Construct a circle with given radius.
+   * @brief Construct a sphere with given radius.
    *
-   * @param radius Radius of the circle (must be > 0).
+   * @param radius Radius of the sphere (must be > 0).
    * @throws std::invalid_argument If radius is not positive.
    */
-  explicit Circle(real_t radius);
+  explicit Sphere(real_t radius);
 
   /**
-   * @brief Get the radius of the circle.
+   * @brief Get the radius of the sphere.
    *
    * @return Radius.
    */
   real_t radius() const;
 
   /**
-   * @brief Compute the area of the circle.
+   * @brief Compute the volume of the sphere.
    *
-   * @details Area = πr²
+   * @details Volume = (4/3) π r^3
    *
-   * @return Area of the circle.
+   * @return Volume of the sphere.
    */
-  real_t area() const override;
+  real_t volume() const override;
 
   /**
-   * @brief Compute the centroid of the circle.
+   * @brief Compute the centroid of the sphere.
    *
    * @details Always at origin for shape-local coordinates.
    *
-   * @return Centroid position vector (0, 0).
+   * @return Centroid position vector (0, 0, 0).
    */
   Vector centroid() const override;
 
   /**
    * @brief Compute the moment of inertia about the centroid.
    *
-   * @details For a circle: I = (1/2) * m * r² where m = ρ * A
+   * @details For a solid sphere: I = (2/5) * m * r^2 where m = ρ * V
    *
-   * @param rho Material density (mass per unit area).
-   * @return Moment of inertia about the z-axis through centroid.
+   * @param rho Material density (mass per unit volume).
+   * @return Scalar representative moment of inertia.
    */
   real_t inertia(real_t rho) const override;
 
   /**
-   * @brief Get vertices approximating the circle.
+   * @brief Get vertices approximating the sphere.
    *
-   * @details Returns vertices in counter-clockwise order starting from the rightmost point.
+   * @details Returns a tessellation of the sphere surface using angular step `delta`.
    *
-   * @param delta_phi Angular step size in radians (default: π/8).
-   * @return Vector of vertex positions approximating the circle.
+   * @param delta Angular step size in radians (default: π/8).
+   * @return Vector of 3D vertex positions approximating the sphere.
    */
-  std::vector<Vector> vertices(real_t delta_phi) const;
+  std::vector<Vector> vertices(real_t delta) const;
 
   /**
-   * @brief Get vertices approximating the circle (override for Shape interface).
+   * @brief Get vertices approximating the sphere (override for Shape interface).
    *
-   * @return Vector of vertex positions approximating the circle.
+   * @return Vector of 3D vertex positions approximating the sphere.
    */
   std::vector<Vector> vertices() const override;
 
   /**
-   * @brief Check if a point is contained within the circle.
+   * @brief Check if a point is contained within the sphere.
    *
    * @param point Point in shape-local coordinates.
-   * @return True if point is inside the circle, false otherwise.
+   * @return True if point is inside the sphere, false otherwise.
    */
   bool_t containsPoint(const Vector& point) const override;
 };
 
 /**
- * @brief A rectangular box shape defined by width and height.
+ * @brief A rectangular box (cuboid) shape defined by width, height and depth.
  *
- * @details Represents a rectangle centered at the origin in local coordinates,
- * with sides parallel to the coordinate axes.
+ * @details Represents an axis-aligned cuboid centered at the origin in local coordinates.
  */
 class Box : public Shape
 {
 protected:
-  /**
-   * @brief Width of the box (along x-axis).
-   */
   real_t m_width;
-
-  /**
-   * @brief Height of the box (along y-axis).
-   */
   real_t m_height;
+  real_t m_depth;
 
 public:
   /**
-   * @brief Construct a box with given width and height.
+   * @brief Construct a cuboid with given width, height and depth.
    *
    * @param width Width of the box (must be > 0).
    * @param height Height of the box (must be > 0).
-   * @throws std::invalid_argument If width or height is not positive.
+   * @param depth Depth of the box (must be > 0).
+   * @throws std::invalid_argument If any dimension is not positive.
    */
-  Box(real_t width, real_t height);
+  Box(real_t width, real_t height, real_t depth);
 
   /**
-   * @brief Construct a square box with equal width and height.
+   * @brief Construct a cube with equal side lengths.
    *
-   * @param size Side length of the square (must be > 0).
+   * @param size Side length of the cube (must be > 0).
    * @throws std::invalid_argument If size is not positive.
    */
   explicit Box(real_t size);
 
-  /**
-   * @brief Get the width of the box.
-   *
-   * @return Width.
-   */
   real_t width() const;
-
-  /**
-   * @brief Get the height of the box.
-   *
-   * @return Height.
-   */
   real_t height() const;
+  real_t depth() const;
 
   /**
-   * @brief Compute the area of the box.
+   * @brief Compute the volume of the cuboid.
    *
-   * @details Area = width * height
-   *
-   * @return Area of the box.
+   * @return Volume = w * h * d.
    */
-  real_t area() const override;
+  real_t volume() const override;
 
-  /**
-   * @brief Compute the centroid of the box.
-   *
-   * @details Always at origin for shape-local coordinates.
-   *
-   * @return Centroid position vector (0, 0).
-   */
   Vector centroid() const override;
 
   /**
-   * @brief Compute the moment of inertia about the centroid.
+   * @brief Compute the (representative) moment of inertia about the centroid.
    *
-   * @details For a rectangle: I = (1/12) * m * (w² + h²) where m = ρ * A
+   * @details Principal inertias for a cuboid are:
+   * I_x = (1/12) m (h^2 + d^2)
+   * I_y = (1/12) m (w^2 + d^2)
+   * I_z = (1/12) m (w^2 + h^2)
+   * This function returns the average of the three principal values as a scalar representative.
    *
-   * @param rho Material density (mass per unit area).
-   * @return Moment of inertia about the z-axis through centroid.
+   * @param rho Material density (mass per unit volume).
+   * @return Representative scalar inertia.
    */
   real_t inertia(real_t rho) const override;
 
   /**
-   * @brief Get the four corner vertices of the box.
+   * @brief Get the eight corner vertices of the cuboid.
    *
-   * @details Returns vertices in counter-clockwise order starting from bottom-left.
-   *
-   * @return Vector of vertex positions.
+   * @return Vector of 3D vertex positions.
    */
   std::vector<Vector> vertices() const override;
 
-  /**
-   * @brief Check if a point is contained within the box.
-   *
-   * @param point Point in shape-local coordinates.
-   * @return True if point is inside the box, false otherwise.
-   */
-  bool_t containsPoint(const Vector& point) const override;
-};
-
-/**
- * @brief A convex polygon shape defined by vertices.
- *
- * @details Represents a convex polygon with vertices in counter-clockwise order.
- * The polygon is assumed to be convex; centroid and inertia calculations are only
- * valid for convex polygons.
- */
-class Polygon : public Shape
-{
-protected:
-  /**
-   * @brief Vertices in counter-clockwise order.
-   */
-  std::vector<Vector> m_vertices;
-
-public:
-  /**
-   * @brief Construct a polygon from vertices.
-   *
-   * @param vertices Vertices in counter-clockwise order (must have ≥ 3 vertices).
-   * @throws std::invalid_argument If less than 3 vertices provided.
-   */
-  explicit Polygon(const std::vector<Vector>& vertices);
-
-  /**
-   * @brief Construct a polygon from an initializer list.
-   *
-   * @param vertices Initializer list of vertices.
-   */
-  Polygon(std::initializer_list<Vector> vertices);
-
-  /**
-   * @brief Get the vertices of the polygon.
-   *
-   * @return Vector of vertex positions.
-   */
-  const std::vector<Vector>& getVertices() const;
-
-  /**
-   * @brief Compute the area of the polygon using the shoelace formula.
-   *
-   * @details Area = (1/2) * |∑(xᵢ * yᵢ₊₁ - xᵢ₊₁ * yᵢ)|
-   * Returns positive area for counter-clockwise vertex ordering.
-   *
-   * @return Area of the polygon.
-   */
-  real_t area() const override;
-
-  /**
-   * @brief Compute the centroid of the polygon.
-   *
-   * @details For a polygon with vertices (xᵢ, yᵢ):
-   * - Cₓ = (1/6A) * ∑(xᵢ + xᵢ₊₁)(xᵢyᵢ₊₁ - xᵢ₊₁yᵢ)
-   * - Cᵧ = (1/6A) * ∑(yᵢ + yᵢ₊₁)(xᵢyᵢ₊₁ - xᵢ₊₁yᵢ)
-   *
-   * @return Centroid position vector.
-   */
-  Vector centroid() const override;
-
-  /**
-   * @brief Compute the moment of inertia about the centroid.
-   *
-   * @details Uses the formula:
-   * I = ρ * ∑[(xᵢyᵢ₊₁ - xᵢ₊₁yᵢ) * (xᵢ² + xᵢxᵢ₊₁ + xᵢ₊₁² + yᵢ² + yᵢyᵢ₊₁ + yᵢ₊₁²)] / 12
-   * Then applies parallel axis theorem to shift to centroid.
-   *
-   * @param rho Material density (mass per unit area).
-   * @return Moment of inertia about the z-axis through centroid.
-   */
-  real_t inertia(real_t rho) const override;
-
-  /**
-   * @brief Get the vertices of the polygon.
-   *
-   * @details Returns vertices in counter-clockwise order.
-   *
-   * @return Vector of vertex positions.
-   */
-  std::vector<Vector> vertices() const override;
-
-  /**
-   * @brief Check if a point is contained within the polygon.
-   *
-   * @details Uses the winding number algorithm for point-in-polygon test.
-   *
-   * @param point Point in shape-local coordinates.
-   * @return True if point is inside the polygon, false otherwise.
-   */
   bool_t containsPoint(const Vector& point) const override;
 };
 
