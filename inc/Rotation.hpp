@@ -22,17 +22,40 @@
 namespace sim
 {
 
+/**
+ * @brief A struct type for euler angles of 3D rotations.
+ *
+ * @param roll Angle of rotation around the x-axis.
+ * @param pitch Angle of rotation around the y-axis.
+ * @param yaw Angle of rotation around the z-axis.
+ */
+typedef struct {
+  real_t roll;
+  real_t pitch;
+  real_t yaw;
+} EulerAngles_t;
+
+inline real_t rad2deg(real_t rad)
+{
+  return rad * 180.0 / M_PI;
+}
+
+inline real_t deg2rad(real_t deg)
+{
+  return deg / 180.0 * M_PI;
+}
+
 template <size_t N>
 class Transform;
 
-template <size_t N>
+template <size_t N = 3>
 class Rotation
 {
 protected:
   Matrix m_matrix;
 
 public:
-  Rotation() = default;
+  Rotation() { m_matrix = eye(N); };
 
   // 2D constructor: angle
   template <size_t M = N>
@@ -48,6 +71,12 @@ public:
     m_matrix = (Rz(yaw) * Ry(pitch) * Rx(roll)).m_matrix;
   }
 
+  template <size_t M = N>
+  Rotation(EulerAngles_t angles, typename std::enable_if<M == 3>::type* = 0)
+  {
+    m_matrix = (Rz(angles.yaw) * Ry(angles.pitch) * Rx(angles.roll)).m_matrix;
+  }
+
   explicit Rotation(const Matrix& mat)
   {
     dimension_t expected = {N, N};
@@ -56,6 +85,8 @@ public:
     }
     m_matrix = mat;
   }
+
+  Matrix getMatrix(void) const { return m_matrix; }
 
   // 2D: single angle
   template <size_t M = N>
@@ -66,14 +97,15 @@ public:
 
   // 3D: return Euler angles as Vector (roll, pitch, yaw)
   template <size_t M = N>
-  typename std::enable_if<M == 3, Vector>::type eulerAngles() const
+  typename std::enable_if<M == 3, EulerAngles_t>::type eulerAngles() const
   {
     real_t sy = -m_matrix(3, 1);
     real_t cy = std::sqrt(m_matrix(1, 1) * m_matrix(1, 1) + m_matrix(2, 1) * m_matrix(2, 1));
-    real_t yaw = std::atan2(m_matrix(2, 1), m_matrix(1, 1));
-    real_t pitch = std::atan2(sy, cy);
-    real_t roll = std::atan2(m_matrix(3, 2), m_matrix(3, 3));
-    return Vector({roll, pitch, yaw});
+    EulerAngles_t angles;
+    angles.yaw = std::atan2(m_matrix(2, 1), m_matrix(1, 1));
+    angles.pitch = std::atan2(sy, cy);
+    angles.roll = std::atan2(m_matrix(3, 2), m_matrix(3, 3));
+    return angles;
   }
 
   std::vector<Vector> unitVectors() const
@@ -115,6 +147,12 @@ public:
     Matrix m({{std::cos(yaw), -std::sin(yaw), 0}, {std::sin(yaw), std::cos(yaw), 0}, {0, 0, 1}});
     return Rotation(m);
   }
+
+  friend std::ostream& operator<<(std::ostream& os, const Rotation& R)
+  {
+    os << R.m_matrix;
+    return os;
+  }
 };
 
 inline real_t angle(const Rotation<2>& R)
@@ -122,7 +160,7 @@ inline real_t angle(const Rotation<2>& R)
   return R.angle();
 }
 
-inline Vector eulerAngles(const Rotation<3>& R)
+inline EulerAngles_t eulerAngles(const Rotation<3>& R)
 {
   return R.eulerAngles();
 }

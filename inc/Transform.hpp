@@ -14,6 +14,7 @@
 #include <type_traits>
 #include <vector>
 
+#include "Matrix.hpp"
 #include "Rotation.hpp"
 #include "Vector.hpp"
 #include "types.hpp"
@@ -21,7 +22,7 @@
 namespace sim
 {
 
-template <size_t N>
+template <size_t N = 3>
 class Transform
 {
 protected:
@@ -29,6 +30,8 @@ protected:
   Vector m_translation;
 
 public:
+  Transform() : m_rotation(Rotation<N>()), m_translation(zeros(3)) {}
+
   Transform(const Rotation<N>& R, const Vector& t) : m_rotation(R)
   {
     if (length(t) != N) {
@@ -46,7 +49,7 @@ public:
 
   // 3D: Euler angles
   template <size_t M = N>
-  typename std::enable_if<M == 3, Vector>::type eulerAngles() const
+  typename std::enable_if<M == 3, EulerAngles_t>::type eulerAngles() const
   {
     return m_rotation.eulerAngles();
   }
@@ -79,6 +82,18 @@ public:
     Rotation<N> R_inv = inv(T.m_rotation);
     return Transform(R_inv, R_inv * (-T.m_translation));
   }
+
+  friend std::ostream& operator<<(std::ostream& os, const Transform& T)
+  {
+    if constexpr (N == 2) {
+      os << vcat(hcat(T.m_rotation.getMatrix(), T.m_translation), {{0, 0, 1}});
+    } else if constexpr (N == 3) {
+      os << vcat(hcat(T.m_rotation.getMatrix(), T.m_translation), {{0, 0, 0, 1}});
+    } else {
+      throw std::invalid_argument("Invalid N.");
+    }
+    return os;
+  }
 };
 
 inline real_t angle(const Transform<2>& T)
@@ -86,7 +101,7 @@ inline real_t angle(const Transform<2>& T)
   return T.angle();
 }
 
-inline Vector eulerAngles(const Transform<3>& T)
+inline EulerAngles_t eulerAngles(const Transform<3>& T)
 {
   return T.eulerAngles();
 }

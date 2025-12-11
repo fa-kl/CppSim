@@ -11,7 +11,9 @@
 #include "Vector.hpp"
 
 #include <cmath>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 
 #include "Matrix.hpp"
@@ -313,11 +315,30 @@ bool_t Vector::operator!=(const Vector& rhs) const
  */
 std::ostream& operator<<(std::ostream& os, const Vector& vec)
 {
-  os << "[";
+  // Format each element with fixed 3 decimal places and align columns
+  std::vector<std::string> parts;
+  parts.reserve(vec.length());
+
+  std::ostringstream tmp;
+  tmp.setf(std::ios::fixed, std::ios::floatfield);
+  tmp.precision(3);
+
+  size_t max_width = 0;
   for (size_t i = 0; i < vec.length(); ++i) {
-    os << vec[i];
-    if (i < vec.length() - 1) {
-      os << ", ";
+    tmp.str("");
+    tmp.clear();
+    tmp << vec[i];
+    std::string s = tmp.str();
+    parts.push_back(s);
+    if (s.size() > max_width)
+      max_width = s.size();
+  }
+
+  os << "[";
+  for (size_t i = 0; i < parts.size(); ++i) {
+    os << std::setw(static_cast<int>(max_width)) << parts[i];
+    if (i < parts.size() - 1) {
+      os << "\n ";
     }
   }
   os << "]";

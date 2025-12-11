@@ -1,83 +1,13 @@
 
 #include "Renderer.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <stdexcept>
 #include <string>
 
 namespace sim
 {
-
-#pragma region Color
-
-#pragma region Color
-
-Color color(real_t r, real_t g, real_t b, real_t opacity)
-{
-  if (0 < r || r < 1) {
-    throw std::invalid_argument("All values must be within [0; 1].");
-  }
-  if (0 < g || g < 1) {
-    throw std::invalid_argument("All values must be within [0; 1].");
-  }
-  if (0 < b || b < 1) {
-    throw std::invalid_argument("All values must be within [0; 1].");
-  }
-  if (0 < opacity || opacity < 1) {
-    throw std::invalid_argument("All values must be within [0; 1].");
-  }
-  uint8_t r8 = static_cast<uint8_t>(round(255.0 * r));
-  uint8_t g8 = static_cast<uint8_t>(round(255.0 * g));
-  uint8_t b8 = static_cast<uint8_t>(round(255.0 * b));
-  uint8_t a8 = static_cast<uint8_t>(round(255.0 * opacity));
-  return {r8, g8, b8, a8};
-}
-
-const Color white = {255, 255, 255, 255};
-const Color black = {0, 0, 0, 255};
-const Color transparent = {0, 0, 0, 0};
-const Color red = {255, 0, 0, 255};
-const Color green = {0, 255, 0, 255};
-const Color blue = {0, 0, 255, 255};
-const Color yellow = {255, 255, 0, 255};
-const Color cyan = {0, 255, 255, 255};
-const Color magenta = {255, 0, 255, 255};
-const Color orange = {255, 165, 0, 255};
-const Color purple = {128, 0, 128, 255};
-const Color pink = {255, 192, 203, 255};
-const Color lightRed = {255, 128, 128, 255};
-const Color lightGreen = {144, 238, 144, 255};
-const Color lightBlue = {173, 216, 230, 255};
-const Color lightYellow = {255, 255, 224, 255};
-const Color lightCyan = {224, 255, 255, 255};
-const Color lightMagenta = {255, 128, 255, 255};
-const Color lightOrange = {255, 200, 124, 255};
-const Color lightPurple = {200, 162, 200, 255};
-const Color lightPink = {255, 220, 225, 255};
-const Color lightGray = {211, 211, 211, 255};
-const Color darkRed = {139, 0, 0, 255};
-const Color darkGreen = {0, 100, 0, 255};
-const Color darkBlue = {0, 0, 139, 255};
-const Color darkYellow = {204, 204, 0, 255};
-const Color darkCyan = {0, 139, 139, 255};
-const Color darkMagenta = {139, 0, 139, 255};
-const Color darkOrange = {255, 140, 0, 255};
-const Color darkPurple = {75, 0, 130, 255};
-const Color darkPink = {231, 84, 128, 255};
-const Color darkGray = {169, 169, 169, 255};
-const Color gray = {128, 128, 128, 255};
-const Color silver = {192, 192, 192, 255};
-const Color dimGray = {105, 105, 105, 255};
-const Color redAlpha = {255, 0, 0, 127};
-const Color greenAlpha = {0, 255, 0, 127};
-const Color blueAlpha = {0, 0, 255, 127};
-const Color yellowAlpha = {255, 255, 0, 127};
-const Color cyanAlpha = {0, 255, 255, 127};
-const Color magentaAlpha = {255, 0, 255, 127};
-const Color whiteAlpha = {255, 255, 255, 127};
-const Color blackAlpha = {0, 0, 0, 127};
-
-#pragma endregion
 
 #pragma region FrameBuffer
 
@@ -86,9 +16,14 @@ FrameBuffer::FrameBuffer(int_t width, int_t height)
 {
 }
 
+bool FrameBuffer::isInFrame(const PixelPosition& px) const
+{
+  return 0 <= px.x && px.x < m_width && 0 <= px.y && px.y < m_height;
+}
+
 Color& FrameBuffer::operator[](PixelPosition px)
 {
-  if (0 <= px.x && px.x < m_width && 0 <= px.y && px.y < m_height) {
+  if (isInFrame(px)) {
     return m_pixel_colors[static_cast<uint_t>(px.y * m_width + px.x)];
   }
   std::string pixel = "(" + std::to_string(px.x) + ", " + std::to_string(px.y) + ")";
@@ -99,7 +34,7 @@ Color& FrameBuffer::operator[](PixelPosition px)
 
 const Color& FrameBuffer::operator[](PixelPosition px) const
 {
-  if (0 <= px.x && px.x < m_width && 0 <= px.y && px.y < m_height) {
+  if (isInFrame(px)) {
     return m_pixel_colors[static_cast<uint_t>(px.y * m_width + px.x)];
   }
   std::string pixel = "(" + std::to_string(px.x) + ", " + std::to_string(px.y) + ")";
@@ -129,50 +64,74 @@ const void* FrameBuffer::getRawData() const
 
 #pragma endregion
 
-#pragma region Renderer
+#pragma region MeshTransform
 
-PixelPosition Renderer::worldToPixel(const Vector& worldPos) const
+Mesh operator*(const Transform<3>& transform, const Mesh& mesh)
 {
-  if (worldPos.length() != 2) {
-    throw std::invalid_argument("Vector must be 2D for rendering");
+  Mesh result = mesh;
+  for (Triangle& triangle : result) {
+    for (Vertex& vert : triangle) {
+      vert.point = transform * vert.point;
+    }
   }
-  int_t px = m_center.x + static_cast<int_t>(std::round(worldPos[0] * m_scale));
-  int_t py = m_center.y - static_cast<int_t>(std::round(worldPos[1] * m_scale));
-  return {px, py};
+  return result;
 }
 
-Renderer::Renderer(int_t width, int_t height, real_t scale)
-    : m_buffer(width, height),
-      m_scale(scale),
-      m_center({width / 2, height / 2}),
-      m_grid_spacing(static_cast<int_t>(scale)),
-      m_width(width),
-      m_height(height)
+Mesh cullMesh(const Mesh& input_mesh, const Camera& camera)
+{
+  Mesh result;
+  result.reserve(input_mesh.size());
+  for (const auto& triangle : input_mesh) {
+    bool any_in_view = false;
+    for (const auto& vertex : triangle) {
+      if (camera.isInView(vertex.point)) {
+        any_in_view = true;
+        break;
+      }
+    }
+    if (any_in_view) {
+      result.push_back(triangle);
+    }
+  }
+  return result;
+}
+
+#pragma endregion
+
+#pragma region Renderer
+
+Renderer::Renderer(int_t width, int_t height, const std::string& title)
+    : m_framebuffer(width, height), m_width(width), m_height(height), m_should_close(false)
 {
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-    throw std::runtime_error("SDL init failed: " + std::string(SDL_GetError()));
+    throw std::runtime_error(std::string("SDL could not initialize! SDL_Error: ") + SDL_GetError());
   }
-  m_window = SDL_CreateWindow("CppSim Renderer",
+  m_window = SDL_CreateWindow(title.c_str(),
                               SDL_WINDOWPOS_CENTERED,
                               SDL_WINDOWPOS_CENTERED,
                               static_cast<int>(width),
                               static_cast<int>(height),
                               SDL_WINDOW_SHOWN);
-
   if (!m_window) {
-    throw std::runtime_error("Window creation failed: " + std::string(SDL_GetError()));
+    SDL_Quit();
+    throw std::runtime_error(std::string("Window could not be created! SDL_Error: ") + SDL_GetError());
   }
-  m_SDLRenderer = SDL_CreateRenderer(m_window, -1, SDL_RENDERER_ACCELERATED);
-  if (!m_SDLRenderer) {
-    throw std::runtime_error("Renderer creation failed: " + std::string(SDL_GetError()));
+  m_sdl_renderer = SDL_CreateRenderer(m_window, -1, SDL_RENDERER_ACCELERATED);
+  if (!m_sdl_renderer) {
+    SDL_DestroyWindow(m_window);
+    SDL_Quit();
+    throw std::runtime_error(std::string("Renderer could not be created! SDL_Error: ") + SDL_GetError());
   }
-  m_texture = SDL_CreateTexture(m_SDLRenderer,
-                                SDL_PIXELFORMAT_ABGR8888,
+  m_texture = SDL_CreateTexture(m_sdl_renderer,
+                                SDL_PIXELFORMAT_RGBA32,
                                 SDL_TEXTUREACCESS_STREAMING,
                                 static_cast<int>(width),
                                 static_cast<int>(height));
   if (!m_texture) {
-    throw std::runtime_error("Texture creation failed: " + std::string(SDL_GetError()));
+    SDL_DestroyRenderer(m_sdl_renderer);
+    SDL_DestroyWindow(m_window);
+    SDL_Quit();
+    throw std::runtime_error(std::string("Texture could not be created! SDL_Error: ") + SDL_GetError());
   }
 }
 
@@ -180,46 +139,30 @@ Renderer::~Renderer()
 {
   if (m_texture)
     SDL_DestroyTexture(m_texture);
-  if (m_SDLRenderer)
-    SDL_DestroyRenderer(m_SDLRenderer);
+  if (m_sdl_renderer)
+    SDL_DestroyRenderer(m_sdl_renderer);
   if (m_window)
     SDL_DestroyWindow(m_window);
   SDL_Quit();
 }
 
-void Renderer::drawLine(const Vector& start, const Vector& end, uint_t widthPixels, const Color& color)
+void Renderer::clear(const Color& color)
 {
-  PixelPosition startPx = worldToPixel(start);
-  PixelPosition endPx = worldToPixel(end);
+  m_framebuffer.clear(color);
+}
 
-  int_t x0 = startPx.x;
-  int_t y0 = startPx.y;
-  int_t x1 = endPx.x;
-  int_t y1 = endPx.y;
-  int_t dx = std::abs(x1 - x0);
-  int_t dy = std::abs(y1 - y0);
-  int_t sx = (x0 < x1) ? 1 : -1;
-  int_t sy = (y0 < y1) ? 1 : -1;
-  int_t err = dx - dy;
-
-  widthPixels = 2 * (widthPixels - 1) + 1;
-  int_t halfWidth = static_cast<int_t>(widthPixels) / 2;
-
+void Renderer::drawLine(int x0, int y0, int x1, int y1, const Color& color)
+{
+  int dx = std::abs(x1 - x0), dy = std::abs(y1 - y0);
+  int sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1, err = dx - dy;
   while (true) {
-    for (int_t w = -halfWidth; w <= halfWidth; w++) {
-      for (int_t h = -halfWidth; h <= halfWidth; h++) {
-        int_t px = x0 + w;
-        int_t py = y0 + h;
-        if (px >= 0 && py >= 0 && px < m_buffer.getWidth() && py < m_buffer.getHeight()) {
-          PixelPosition pixelpos = {px, py};
-          m_buffer[pixelpos] = color;
-        }
-      }
+    if (x0 >= 0 && x0 < m_width && y0 >= 0 && y0 < m_height) {
+      m_framebuffer[{x0, y0}] = color;
     }
     if (x0 == x1 && y0 == y1) {
       break;
     }
-    int_t e2 = 2 * err;
+    int e2 = 2 * err;
     if (e2 > -dy) {
       err -= dy;
       x0 += sx;
@@ -231,95 +174,122 @@ void Renderer::drawLine(const Vector& start, const Vector& end, uint_t widthPixe
   }
 }
 
-void Renderer::drawCircle(const Vector& center, real_t radius, const Color& color)
+void Renderer::fillTriangle(int x0, int y0, int x1, int y1, int x2, int y2, const Color& color)
 {
-  PixelPosition centerPx = worldToPixel(center);
-  int_t radiusPx = static_cast<int_t>(std::round(radius * m_scale));
-
-  for (int_t y = -radiusPx; y <= radiusPx; y++) {
-    for (int_t x = -radiusPx; x <= radiusPx; x++) {
-      if (x * x + y * y <= radiusPx * radiusPx) {
-        int_t px = centerPx.x + x;
-        int_t py = centerPx.y + y;
-        if (px >= 0 && py >= 0 && px < m_buffer.getWidth() && py < m_buffer.getHeight()) {
-          PixelPosition pixelpos = {px, py};
-          m_buffer[pixelpos] = color;
-        }
+  if (y0 > y1) {
+    std::swap(y0, y1);
+    std::swap(x0, x1);
+  }
+  if (y0 > y2) {
+    std::swap(y0, y2);
+    std::swap(x0, x2);
+  }
+  if (y1 > y2) {
+    std::swap(y1, y2);
+    std::swap(x1, x2);
+  }
+  auto interp = [](int y, int y0, int x0, int y1, int x1) {
+    return y1 == y0 ? x0 : x0 + (x1 - x0) * (y - y0) / (y1 - y0);
+  };
+  for (int y = y0; y <= y2; ++y) {
+    int xa = interp(y, y0, x0, y2, x2), xb = y <= y1 ? interp(y, y0, x0, y1, x1) : interp(y, y1, x1, y2, x2);
+    if (xa > xb) {
+      std::swap(xa, xb);
+    }
+    for (int x = xa; x <= xb; ++x) {
+      if (x >= 0 && x < m_width && y >= 0 && y < m_height) {
+        m_framebuffer[{x, y}] = color;
       }
     }
   }
 }
 
-void Renderer::drawPolygon(const std::vector<Vector>& vertices, uint_t widthPixels, const Color& color)
+std::pair<int, int> Renderer::ndcToScreen(const Vector& ndc) const
 {
-  if (vertices.size() < 3) {
-    return;
-  }
-  for (size_t i = 0; i < vertices.size(); i++) {
-    size_t next = (i + 1) % vertices.size();
-    drawLine(vertices[i], vertices[next], widthPixels, color);
-  }
+  return {static_cast<int>((ndc[0] + 1.0) * 0.5 * m_width), static_cast<int>((1.0 - ndc[1]) * 0.5 * m_height)};
 }
 
-void Renderer::drawArrow(const Vector& start, const Vector& end, uint_t widthPixels, const Color& color)
+void Renderer::renderMesh(const Mesh& mesh, const Camera& camera, const Color& line_color)
 {
-  drawLine(start, end, widthPixels, color);
-  // TODO: Implement arrowhead drawing
-}
-
-void Renderer::drawGrid(uint_t widthPixels, const Color& color)
-{
-  real_t worldWidth = static_cast<real_t>(m_width) / m_scale;
-  real_t worldHeight = static_cast<real_t>(m_height) / m_scale;
-
-  int_t numLinesX = static_cast<int_t>(std::ceil(worldWidth / 2.0));
-  int_t numLinesY = static_cast<int_t>(std::ceil(worldHeight / 2.0));
-
-  // Draw vertical lines (parallel to Y-axis)
-  for (int_t i = -numLinesX; i <= numLinesX; i++) {
-    real_t x = static_cast<real_t>(i);
-    Vector top = {x, worldHeight / 2.0};
-    Vector bottom = {x, -worldHeight / 2.0};
-    drawLine(top, bottom, widthPixels, color);
-  }
-
-  // Draw horizontal lines (parallel to X-axis)
-  for (int_t j = -numLinesY; j <= numLinesY; j++) {
-    real_t y = static_cast<real_t>(j);
-    Vector left = {-worldWidth / 2.0, y};
-    Vector right = {worldWidth / 2.0, y};
-    drawLine(left, right, widthPixels, color);
-  }
-}
-
-void Renderer::drawWorldFrame(uint_t widthPixels)
-{
-  Vector origin = {0.0, 0.0};
-  Vector xAxis = {1.0, 0.0};
-  Vector yAxis = {0.0, 1.0};
-  drawLine(origin, xAxis, widthPixels, red);
-  drawLine(origin, yAxis, widthPixels, blue);
-}
-
-void Renderer::display()
-{
-  bool shouldClose = false;
-  while (!shouldClose) {
-    // Update texture with framebuffer
-    SDL_UpdateTexture(m_texture, nullptr, m_buffer.getRawData(), static_cast<int>(m_buffer.getWidth() * 4));
-    SDL_SetRenderDrawColor(m_SDLRenderer, 0, 0, 0, 255);
-    SDL_RenderClear(m_SDLRenderer);
-    SDL_RenderCopy(m_SDLRenderer, m_texture, nullptr, nullptr);
-    SDL_RenderPresent(m_SDLRenderer);
-
-    // Handle events
-    SDL_Event event;
-    while (SDL_PollEvent(&event)) {
-      if (event.type == SDL_QUIT || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)) {
-        shouldClose = true;
-      }
+  // First pass: fill triangles with vertex colors
+  for (const auto& tri : mesh) {
+    try {
+      auto [x0, y0] = ndcToScreen(camera.projectWorldToNDC(tri[0].point));
+      auto [x1, y1] = ndcToScreen(camera.projectWorldToNDC(tri[1].point));
+      auto [x2, y2] = ndcToScreen(camera.projectWorldToNDC(tri[2].point));
+      // Use the color from the first vertex (or could average all three)
+      fillTriangle(x0, y0, x1, y1, x2, y2, tri[0].color);
+    } catch (...) {
     }
-    SDL_Delay(16);  // ~60 FPS
+  }
+  // Second pass: draw wireframe lines
+  for (const auto& tri : mesh) {
+    try {
+      auto [x0, y0] = ndcToScreen(camera.projectWorldToNDC(tri[0].point));
+      auto [x1, y1] = ndcToScreen(camera.projectWorldToNDC(tri[1].point));
+      auto [x2, y2] = ndcToScreen(camera.projectWorldToNDC(tri[2].point));
+      drawLine(x0, y0, x1, y1, line_color);
+      drawLine(x1, y1, x2, y2, line_color);
+      drawLine(x2, y2, x0, y0, line_color);
+    } catch (...) {
+    }
+  }
+}
+
+void Renderer::drawAxes(const Camera& camera, real_t length)
+{
+  Vector o = {0, 0, 0}, x = {length, 0, 0}, y = {0, length, 0}, z = {0, 0, length};
+  try {
+    if (camera.isInView(o) || camera.isInView(x)) {
+      auto [ox, oy] = ndcToScreen(camera.projectWorldToNDC(o));
+      auto [xx, xy] = ndcToScreen(camera.projectWorldToNDC(x));
+      drawLine(ox, oy, xx, xy, RED);
+    }
+    if (camera.isInView(o) || camera.isInView(y)) {
+      auto [ox, oy] = ndcToScreen(camera.projectWorldToNDC(o));
+      auto [yx, yy] = ndcToScreen(camera.projectWorldToNDC(y));
+      drawLine(ox, oy, yx, yy, GREEN);
+    }
+    if (camera.isInView(o) || camera.isInView(z)) {
+      auto [ox, oy] = ndcToScreen(camera.projectWorldToNDC(o));
+      auto [zx, zy] = ndcToScreen(camera.projectWorldToNDC(z));
+      drawLine(ox, oy, zx, zy, BLUE);
+    }
+  } catch (...) {
+  }
+}
+
+void Renderer::present()
+{
+  SDL_UpdateTexture(m_texture, nullptr, m_framebuffer.getRawData(), static_cast<int>(m_width) * 4);
+  SDL_RenderClear(m_sdl_renderer);
+  SDL_RenderCopy(m_sdl_renderer, m_texture, nullptr, nullptr);
+  SDL_RenderPresent(m_sdl_renderer);
+}
+
+FrameBuffer& Renderer::getFrameBuffer()
+{
+  return m_framebuffer;
+}
+int_t Renderer::getWidth() const
+{
+  return m_width;
+}
+int_t Renderer::getHeight() const
+{
+  return m_height;
+}
+bool Renderer::shouldClose()
+{
+  return m_should_close;
+}
+
+void Renderer::pollEvents()
+{
+  SDL_Event e;
+  while (SDL_PollEvent(&e) != 0) {
+    if (e.type == SDL_QUIT || (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE))
+      m_should_close = true;
   }
 }
 

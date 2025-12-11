@@ -10,9 +10,18 @@
 
 #pragma once
 
+#include <array>
 #include <iostream>
+#include <vector>
 
+#include "Camera.hpp"
+#include "Color.hpp"
+#include "Matrix.hpp"
+#include "Rotation.hpp"
+#include "Shapes.hpp"
+#include "Transform.hpp"
 #include "Vector.hpp"
+#include "Vertex.hpp"
 #include "types.hpp"
 
 #ifdef __linux__
@@ -36,69 +45,6 @@ typedef struct {
 
 #pragma endregion
 
-#pragma region Color
-
-/**
- * @brief A type for storing color values in RGBA format.
- */
-typedef struct {
-  uint8_t red;
-  uint8_t green;
-  uint8_t blue;
-  uint8_t opacity;
-} Color;
-
-/**
- * @brief Create a color using real values from the interval [0; 1].
- */
-Color color(real_t red, real_t green, real_t blue, real_t opacity);
-
-extern const Color white;
-extern const Color black;
-extern const Color transparent;
-extern const Color red;
-extern const Color green;
-extern const Color blue;
-extern const Color yellow;
-extern const Color cyan;
-extern const Color magenta;
-extern const Color orange;
-extern const Color purple;
-extern const Color pink;
-extern const Color lightRed;
-extern const Color lightGreen;
-extern const Color lightBlue;
-extern const Color lightYellow;
-extern const Color lightCyan;
-extern const Color lightMagenta;
-extern const Color lightOrange;
-extern const Color lightPurple;
-extern const Color lightPink;
-extern const Color lightGray;
-extern const Color darkRed;
-extern const Color darkGreen;
-extern const Color darkBlue;
-extern const Color darkYellow;
-extern const Color darkCyan;
-extern const Color darkMagenta;
-extern const Color darkOrange;
-extern const Color darkPurple;
-extern const Color darkPink;
-extern const Color darkGray;
-extern const Color gray;
-extern const Color silver;
-extern const Color dimGray;
-extern const Color redAlpha;
-extern const Color greenAlpha;
-extern const Color blueAlpha;
-extern const Color yellowAlpha;
-extern const Color cyanAlpha;
-extern const Color magentaAlpha;
-extern const Color whiteAlpha;
-extern const Color blackAlpha;
-
-#pragma endregion
-
 #pragma region FrameBuffer
 
 class FrameBuffer
@@ -107,13 +53,15 @@ protected:
   int_t m_width, m_height;
   std::vector<Color> m_pixel_colors;
 
+  bool isInFrame(const PixelPosition& px) const;
+
 public:
   FrameBuffer(int_t width, int_t height);
 
   Color& operator[](PixelPosition px);
   const Color& operator[](PixelPosition px) const;
 
-  void clear(const Color& color = black);
+  void clear(const Color& color = BLACK);
 
   int_t getWidth() const;
   int_t getHeight() const;
@@ -122,84 +70,105 @@ public:
 
 #pragma endregion
 
-#pragma region Window
+#pragma region MeshTransform
 
-class Window
-{
-private:
-  SDL_Window* m_window;
-  SDL_Renderer* m_SDLRenderer;
-  SDL_Texture* m_Texture;
-  int_t m_width, m_height;
+/**
+ * @brief Apply a transformation to a mesh.
+ */
+Mesh operator*(const Transform<3>& transform, const Mesh& mesh);
 
-public:
-  Window(int_t w, int_t h);
-
-  ~Window();
-
-  void display(const FrameBuffer& frameBuffer);
-  bool shouldClose();
-};
+/**
+ * @brief Cull triangles that are completely outside the camera's view frustum.
+ */
+Mesh cullMesh(const Mesh& input_mesh, const Camera& camera);
 
 #pragma endregion
 
 #pragma region Renderer
 
+/**
+ * @brief 3D Renderer using SDL2 and a framebuffer.
+ */
 class Renderer
 {
-private:
-  // FrameBuffer and SDL members (formerly Window)
-  FrameBuffer m_buffer;
+protected:
   SDL_Window* m_window;
-  SDL_Renderer* m_SDLRenderer;
+  SDL_Renderer* m_sdl_renderer;
   SDL_Texture* m_texture;
-
-  // Helper members for coordinate system and scaling
-  real_t m_scale;           // Pixels per unit (e.g., 100 pixels per 1 unit)
-  PixelPosition m_center;   // Center of the viewport in pixels
-  int_t m_grid_spacing;     // d: grid spacing in pixels (1/scale)
-  int_t m_width, m_height;  // window width & height
+  FrameBuffer m_framebuffer;
+  int_t m_width, m_height;
+  bool m_should_close;
 
   /**
-   * @brief Convert world coordinates (Vector) to pixel coordinates.
-   * @param worldPos 2D world position vector.
-   * @return Pixel position for framebuffer access.
-   * @throws std::invalid_argument if vector is not 2D.
+   * @brief Draw a line using Bresenham's algorithm.
    */
-  PixelPosition worldToPixel(const Vector& worldPos) const;
+  void drawLine(int x0, int y0, int x1, int y1, const Color& color);
+
+  /**
+   * @brief Fill a triangle using scanline rasterization.
+   */
+  void fillTriangle(int x0, int y0, int x1, int y1, int x2, int y2, const Color& color);
+
+  /**
+   * @brief Convert NDC coordinates to screen coordinates.
+   */
+  std::pair<int, int> ndcToScreen(const Vector& ndc) const;
 
 public:
   /**
-   * @brief Construct a Renderer with given width, height and scaling.
-   *
-   * @param width Window width in pixels.
-   * @param height Window height in pixels.
-   * @param scale Pixels per unit (default: 100).
+   * @brief Construct a renderer with specified window size.
    */
-  Renderer(int_t width, int_t height, real_t scale = 100.0);
+  Renderer(int_t width, int_t height, const std::string& title = "3D Renderer");
 
   /**
-   * @brief Destructor.
+   * @brief Destructor - cleanup SDL resources.
    */
   ~Renderer();
 
-  void drawLine(const Vector& start, const Vector& end, uint_t widthPixels, const Color& color);
-  void drawCircle(const Vector& center, real_t radius, const Color& color);
-  void drawPolygon(const std::vector<Vector>& vertices, uint_t widthPixels, const Color& color);
-  void drawArrow(const Vector& start, const Vector& end, uint_t widthPixels, const Color& color);
-  void drawGrid(uint_t widthPixels = 1, const Color& color = gray);
-  void drawWorldFrame(uint_t widthPixels = 2);
+  /**
+   * @brief Clear the framebuffer with a color.
+   */
+  void clear(const Color& color = BLACK);
 
   /**
-   * @brief Display the rendered frame and handle events until window closes.
-   *
-   * @details This is a blocking call that shows the window and runs the
-   * event loop, processing SDL events and checking if the window should close.
-   * The frame rate is capped at ~60 FPS. Call with no arguments.
+   * @brief Render a mesh to the framebuffer.
    */
-  void display();
+  void renderMesh(const Mesh& mesh, const Camera& camera, const Color& line_color = WHITE);
 
-  void clear(const Color& color = black) { m_buffer.clear(color); }
+  /**
+   * @brief Draw coordinate axes at origin.
+   */
+  void drawAxes(const Camera& camera, real_t length = 1.0);
+
+  /**
+   * @brief Present the framebuffer to the screen.
+   */
+  void present();
+
+  /**
+   * @brief Get the framebuffer for direct manipulation.
+   */
+  FrameBuffer& getFrameBuffer();
+
+  /**
+   * @brief Get window width.
+   */
+  int_t getWidth() const;
+
+  /**
+   * @brief Get window height.
+   */
+  int_t getHeight() const;
+
+  /**
+   * @brief Check if window should close.
+   */
+  bool shouldClose();
+
+  /**
+   * @brief Poll events and update window state.
+   */
+  void pollEvents();
 };
 
 #pragma endregion

@@ -11,3 +11,16 @@ Install the required packages and build the project:
 sudo apt install -y build-essential cmake libsdl2-dev
 mkdir build && cd build && cmake .. && make
 ```
+
+### Running the 3D Renderer Demo
+After building, run the demo to see a rotating 3D box with rasterized triangles:
+```bash
+cd build
+./Main
+```
+
+The demo features:
+- Real-time 3D rendering with perspective projection
+- Rotating box with colored fill and wireframe edges
+- View frustum culling
+- Press ESC to quit

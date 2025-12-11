@@ -10,8 +10,11 @@
 
 #include "Matrix.hpp"
 
+#include <algorithm>
 #include <cmath>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 
 #include "Vector.hpp"
@@ -331,21 +334,37 @@ bool_t Matrix::operator!=(const Matrix& rhs) const
 
 std::ostream& operator<<(std::ostream& os, const Matrix& mat)
 {
+  // Prepare formatted strings with fixed 3 decimal places per element
+  size_t rows = mat.rows();
+  size_t cols = mat.cols();
+  std::vector<std::vector<std::string>> parts(rows, std::vector<std::string>(cols));
+  std::vector<size_t> col_width(cols, 0);
+
+  std::ostringstream tmp;
+  tmp.setf(std::ios::fixed, std::ios::floatfield);
+  tmp.precision(3);
+
+  for (size_t i = 0; i < rows; ++i) {
+    for (size_t j = 0; j < cols; ++j) {
+      tmp.str("");
+      tmp.clear();
+      tmp << mat(static_cast<index_t>(i + 1), static_cast<index_t>(j + 1));
+      parts[i][j] = tmp.str();
+      col_width[j] = std::max(col_width[j], parts[i][j].size());
+    }
+  }
+
   os << "[";
-  for (size_t i = 1; i <= mat.rows(); ++i) {
-    if (i > 1)
+  for (size_t i = 0; i < rows; ++i) {
+    if (i > 0)
       os << " ";
-    os << "[";
-    for (size_t j = 1; j <= mat.cols(); ++j) {
-      os << mat(static_cast<index_t>(i), static_cast<index_t>(j));
-      if (j < mat.cols()) {
+    for (size_t j = 0; j < cols; ++j) {
+      os << std::setw(static_cast<int>(col_width[j])) << parts[i][j];
+      if (j + 1 < cols)
         os << ", ";
-      }
     }
-    os << "]";
-    if (i < mat.rows()) {
+    if (i + 1 < rows)
       os << "\n";
-    }
   }
   os << "]";
   return os;
