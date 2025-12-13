@@ -15,17 +15,18 @@
 namespace sim
 {
 
-struct Color {
-  uint8_t red;
-  uint8_t green;
-  uint8_t blue;
-  uint8_t opacity;
+struct Color
+{
+    uint8_t red;
+    uint8_t green;
+    uint8_t blue;
+    uint8_t opacity;
 
-  Color();
+    Color();
 
-  Color(uint8_t r, uint8_t g, uint8_t b, uint8_t o);
+    Color(uint8_t r, uint8_t g, uint8_t b, uint8_t o);
 
-  Color(real_t r, real_t g, real_t b, real_t o);
+    Color(real_t r, real_t g, real_t b, real_t o);
 };
 
 Color mean(std::vector<Color> colors);

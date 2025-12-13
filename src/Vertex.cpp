@@ -17,9 +17,10 @@ namespace sim
 
 Vertex::Vertex(Vector p, Color c) : point(p), color(c)
 {
-  if (point.length() != 3) {
-    throw std::invalid_argument("Point must be 3-dimensional");
-  }
+    if (point.length() != 3)
+    {
+        throw std::invalid_argument("Point must be 3-dimensional");
+    }
 }
 
 }  // namespace sim

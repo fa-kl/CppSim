@@ -27,289 +27,289 @@ namespace sim
  */
 class Matrix
 {
-protected:
-  /**
-   * @brief The underlying data storage (row-major order).
-   */
-  std::vector<real_t> m_data;
+  protected:
+    /**
+     * @brief The underlying data storage (row-major order).
+     */
+    std::vector<real_t> m_data;
 
-  /**
-   * @brief The dimensions of the matrix.
-   */
-  dimension_t m_size;
+    /**
+     * @brief The dimensions of the matrix.
+     */
+    dimension_t m_size;
 
-public:
-  /**
-   * @brief Creates an empty matrix.
-   */
-  Matrix();
+  public:
+    /**
+     * @brief Creates an empty matrix.
+     */
+    Matrix();
 
-  /**
-   * @brief Creates a matrix with specified dimensions initialized to zero.
-   *
-   * @param rows Number of rows.
-   * @param cols Number of columns.
-   */
-  Matrix(size_t rows, size_t cols);
+    /**
+     * @brief Creates a matrix with specified dimensions initialized to zero.
+     *
+     * @param rows Number of rows.
+     * @param cols Number of columns.
+     */
+    Matrix(size_t rows, size_t cols);
 
-  /**
-   * @brief Creates a matrix from a nested initializer list.
-   *
-   * @param values Nested initializer list of values.
-   */
-  Matrix(std::initializer_list<std::initializer_list<real_t>> values);
+    /**
+     * @brief Creates a matrix from a nested initializer list.
+     *
+     * @param values Nested initializer list of values.
+     */
+    Matrix(std::initializer_list<std::initializer_list<real_t>> values);
 
-  /**
-   * @brief Creates a matrix from a vector by reshaping it.
-   *
-   * @param vec Vector to convert to matrix.
-   * @param rows Number of rows.
-   * @param cols Number of columns.
-   */
-  Matrix(const Vector& vec, size_t rows, size_t cols);
+    /**
+     * @brief Creates a matrix from a vector by reshaping it.
+     *
+     * @param vec Vector to convert to matrix.
+     * @param rows Number of rows.
+     * @param cols Number of columns.
+     */
+    Matrix(const Vector& vec, size_t rows, size_t cols);
 
-  /**
-   * @brief Copy constructor.
-   *
-   * @param other Matrix to copy.
-   */
-  Matrix(const Matrix& other);
+    /**
+     * @brief Copy constructor.
+     *
+     * @param other Matrix to copy.
+     */
+    Matrix(const Matrix& other);
 
-  /**
-   * @brief Move constructor.
-   *
-   * @param other Matrix to move.
-   */
-  Matrix(Matrix&& other) noexcept;
+    /**
+     * @brief Move constructor.
+     *
+     * @param other Matrix to move.
+     */
+    Matrix(Matrix&& other) noexcept;
 
-  /**
-   * @brief Destructor.
-   */
-  ~Matrix();
+    /**
+     * @brief Destructor.
+     */
+    ~Matrix();
 
-  /**
-   * @brief Copy assignment operator.
-   *
-   * @param other Matrix to copy.
-   * @return Reference to this matrix.
-   */
-  Matrix& operator=(const Matrix& other);
+    /**
+     * @brief Copy assignment operator.
+     *
+     * @param other Matrix to copy.
+     * @return Reference to this matrix.
+     */
+    Matrix& operator=(const Matrix& other);
 
-  /**
-   * @brief Move assignment operator.
-   *
-   * @param other Matrix to move.
-   * @return Reference to this matrix.
-   */
-  Matrix& operator=(Matrix&& other) noexcept;
+    /**
+     * @brief Move assignment operator.
+     *
+     * @param other Matrix to move.
+     * @return Reference to this matrix.
+     */
+    Matrix& operator=(Matrix&& other) noexcept;
 
-  /**
-   * @brief Get the number of rows.
-   *
-   * @return Number of rows.
-   */
-  size_t rows() const;
+    /**
+     * @brief Get the number of rows.
+     *
+     * @return Number of rows.
+     */
+    size_t rows() const;
 
-  /**
-   * @brief Get the number of columns.
-   *
-   * @return Number of columns.
-   */
-  size_t cols() const;
+    /**
+     * @brief Get the number of columns.
+     *
+     * @return Number of columns.
+     */
+    size_t cols() const;
 
-  /**
-   * @brief Get the size dimensions of the matrix.
-   *
-   * @return Size as dimension_t structure.
-   */
-  dimension_t size() const;
+    /**
+     * @brief Get the size dimensions of the matrix.
+     *
+     * @return Size as dimension_t structure.
+     */
+    dimension_t size() const;
 
-  /**
-   * @brief Get the total number of elements.
-   *
-   * @return Total number of elements.
-   */
-  size_t length() const;
+    /**
+     * @brief Get the total number of elements.
+     *
+     * @return Total number of elements.
+     */
+    size_t length() const;
 
-  /**
-   * @brief Check if the matrix is empty.
-   *
-   * @return True if empty, false otherwise.
-   */
-  bool_t isEmpty() const;
+    /**
+     * @brief Check if the matrix is empty.
+     *
+     * @return True if empty, false otherwise.
+     */
+    bool_t isEmpty() const;
 
-  /**
-   * @brief Access element at linear index (0-based, row-major order).
-   *
-   * @param i Linear index.
-   * @return Reference to element at index i.
-   */
-  real_t& operator[](size_t i);
+    /**
+     * @brief Access element at linear index (0-based, row-major order).
+     *
+     * @param i Linear index.
+     * @return Reference to element at index i.
+     */
+    real_t& operator[](size_t i);
 
-  /**
-   * @brief Access element at linear index (0-based, row-major order).
-   *
-   * @param i Linear index.
-   * @return Const reference to element at index i.
-   */
-  const real_t& operator[](size_t i) const;
+    /**
+     * @brief Access element at linear index (0-based, row-major order).
+     *
+     * @param i Linear index.
+     * @return Const reference to element at index i.
+     */
+    const real_t& operator[](size_t i) const;
 
-  /**
-   * @brief Access element at row i, column j (1-based indexing, supports negative indices).
-   *
-   * @param i Row index (1-based, negative indices count from end).
-   * @param j Column index (1-based, negative indices count from end).
-   * @return Reference to element at (i, j).
-   */
-  real_t& operator()(index_t i, index_t j);
+    /**
+     * @brief Access element at row i, column j (1-based indexing, supports negative indices).
+     *
+     * @param i Row index (1-based, negative indices count from end).
+     * @param j Column index (1-based, negative indices count from end).
+     * @return Reference to element at (i, j).
+     */
+    real_t& operator()(index_t i, index_t j);
 
-  /**
-   * @brief Access element at row i, column j (1-based indexing, supports negative indices).
-   *
-   * @param i Row index (1-based, negative indices count from end).
-   * @param j Column index (1-based, negative indices count from end).
-   * @return Const reference to element at (i, j).
-   */
-  const real_t& operator()(index_t i, index_t j) const;
+    /**
+     * @brief Access element at row i, column j (1-based indexing, supports negative indices).
+     *
+     * @param i Row index (1-based, negative indices count from end).
+     * @param j Column index (1-based, negative indices count from end).
+     * @return Const reference to element at (i, j).
+     */
+    const real_t& operator()(index_t i, index_t j) const;
 
-  /**
-   * @brief Unary plus operator.
-   *
-   * @return A copy of the matrix.
-   */
-  Matrix operator+() const;
+    /**
+     * @brief Unary plus operator.
+     *
+     * @return A copy of the matrix.
+     */
+    Matrix operator+() const;
 
-  /**
-   * @brief Unary minus operator (negate matrix).
-   *
-   * @return A negated copy of the matrix.
-   */
-  Matrix operator-() const;
+    /**
+     * @brief Unary minus operator (negate matrix).
+     *
+     * @return A negated copy of the matrix.
+     */
+    Matrix operator-() const;
 
-  /**
-   * @brief Add two matrices element-wise.
-   *
-   * @param rhs Right-hand side matrix.
-   * @return Result of element-wise addition.
-   */
-  Matrix operator+(const Matrix& rhs) const;
+    /**
+     * @brief Add two matrices element-wise.
+     *
+     * @param rhs Right-hand side matrix.
+     * @return Result of element-wise addition.
+     */
+    Matrix operator+(const Matrix& rhs) const;
 
-  /**
-   * @brief Add a scalar to all elements of the matrix.
-   *
-   * @param scalar Scalar value.
-   * @return Result matrix.
-   */
-  Matrix operator+(real_t scalar) const;
+    /**
+     * @brief Add a scalar to all elements of the matrix.
+     *
+     * @param scalar Scalar value.
+     * @return Result matrix.
+     */
+    Matrix operator+(real_t scalar) const;
 
-  /**
-   * @brief Subtract two matrices element-wise.
-   *
-   * @param rhs Right-hand side matrix.
-   * @return Result of element-wise subtraction.
-   */
-  Matrix operator-(const Matrix& rhs) const;
+    /**
+     * @brief Subtract two matrices element-wise.
+     *
+     * @param rhs Right-hand side matrix.
+     * @return Result of element-wise subtraction.
+     */
+    Matrix operator-(const Matrix& rhs) const;
 
-  /**
-   * @brief Subtract a scalar from all elements of the matrix.
-   *
-   * @param scalar Scalar value.
-   * @return Result matrix.
-   */
-  Matrix operator-(real_t scalar) const;
+    /**
+     * @brief Subtract a scalar from all elements of the matrix.
+     *
+     * @param scalar Scalar value.
+     * @return Result matrix.
+     */
+    Matrix operator-(real_t scalar) const;
 
-  /**
-   * @brief Perform matrix multiplication.
-   *
-   * @param rhs Right-hand side matrix.
-   * @return Result of matrix multiplication.
-   */
-  Matrix operator*(const Matrix& rhs) const;
+    /**
+     * @brief Perform matrix multiplication.
+     *
+     * @param rhs Right-hand side matrix.
+     * @return Result of matrix multiplication.
+     */
+    Matrix operator*(const Matrix& rhs) const;
 
-  /**
-   * @brief Multiply matrix by a vector.
-   *
-   * @param vec Vector.
-   * @return Result vector.
-   */
-  Vector operator*(const Vector& vec) const;
+    /**
+     * @brief Multiply matrix by a vector.
+     *
+     * @param vec Vector.
+     * @return Result vector.
+     */
+    Vector operator*(const Vector& vec) const;
 
-  /**
-   * @brief Multiply all elements by a scalar.
-   *
-   * @param scalar Scalar value.
-   * @return Result matrix.
-   */
-  Matrix operator*(real_t scalar) const;
+    /**
+     * @brief Multiply all elements by a scalar.
+     *
+     * @param scalar Scalar value.
+     * @return Result matrix.
+     */
+    Matrix operator*(real_t scalar) const;
 
-  /**
-   * @brief Divide all elements by a scalar.
-   *
-   * @param scalar Scalar value (divisor).
-   * @return Result matrix.
-   */
-  Matrix operator/(real_t scalar) const;
+    /**
+     * @brief Divide all elements by a scalar.
+     *
+     * @param scalar Scalar value (divisor).
+     * @return Result matrix.
+     */
+    Matrix operator/(real_t scalar) const;
 
-  /**
-   * @brief Element-wise equality comparison.
-   *
-   * @param rhs Right-hand side matrix.
-   * @return True if all elements are equal, false otherwise.
-   */
-  bool_t operator==(const Matrix& rhs) const;
+    /**
+     * @brief Element-wise equality comparison.
+     *
+     * @param rhs Right-hand side matrix.
+     * @return True if all elements are equal, false otherwise.
+     */
+    bool_t operator==(const Matrix& rhs) const;
 
-  /**
-   * @brief Element-wise inequality comparison.
-   *
-   * @param rhs Right-hand side matrix.
-   * @return True if any elements differ, false otherwise.
-   */
-  bool_t operator!=(const Matrix& rhs) const;
+    /**
+     * @brief Element-wise inequality comparison.
+     *
+     * @param rhs Right-hand side matrix.
+     * @return True if any elements differ, false otherwise.
+     */
+    bool_t operator!=(const Matrix& rhs) const;
 
-  /**
-   * @brief Multiply a scalar by a matrix.
-   *
-   * @param scalar Scalar value.
-   * @param mat Matrix.
-   * @return Result matrix.
-   */
-  friend Matrix operator*(real_t scalar, const Matrix& mat);
+    /**
+     * @brief Multiply a scalar by a matrix.
+     *
+     * @param scalar Scalar value.
+     * @param mat Matrix.
+     * @return Result matrix.
+     */
+    friend Matrix operator*(real_t scalar, const Matrix& mat);
 
-  /**
-   * @brief Multiply a vector by a matrix.
-   *
-   * @param vec Vector.
-   * @param mat Matrix.
-   * @return Result matrix (outer product-like operation).
-   */
-  friend Matrix operator*(const Vector& vec, const Matrix& mat);
+    /**
+     * @brief Multiply a vector by a matrix.
+     *
+     * @param vec Vector.
+     * @param mat Matrix.
+     * @return Result matrix (outer product-like operation).
+     */
+    friend Matrix operator*(const Vector& vec, const Matrix& mat);
 
-  /**
-   * @brief Add a scalar to a matrix.
-   *
-   * @param scalar Scalar value.
-   * @param mat Matrix.
-   * @return Result matrix.
-   */
-  friend Matrix operator+(real_t scalar, const Matrix& mat);
+    /**
+     * @brief Add a scalar to a matrix.
+     *
+     * @param scalar Scalar value.
+     * @param mat Matrix.
+     * @return Result matrix.
+     */
+    friend Matrix operator+(real_t scalar, const Matrix& mat);
 
-  /**
-   * @brief Subtract a matrix from a scalar.
-   *
-   * @param scalar Scalar value.
-   * @param mat Matrix.
-   * @return Result matrix.
-   */
-  friend Matrix operator-(real_t scalar, const Matrix& mat);
+    /**
+     * @brief Subtract a matrix from a scalar.
+     *
+     * @param scalar Scalar value.
+     * @param mat Matrix.
+     * @return Result matrix.
+     */
+    friend Matrix operator-(real_t scalar, const Matrix& mat);
 
-  /**
-   * @brief Output stream operator for matrices.
-   *
-   * @param os Output stream.
-   * @param mat Matrix to output.
-   * @return Output stream.
-   */
-  friend std::ostream& operator<<(std::ostream& os, const Matrix& mat);
+    /**
+     * @brief Output stream operator for matrices.
+     *
+     * @param os Output stream.
+     * @param mat Matrix to output.
+     * @return Output stream.
+     */
+    friend std::ostream& operator<<(std::ostream& os, const Matrix& mat);
 };
 
 /*****************************************************************************************

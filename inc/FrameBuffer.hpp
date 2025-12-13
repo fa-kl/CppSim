@@ -18,31 +18,32 @@
 namespace sim
 {
 
-struct PixelCoordinate {
-  int_t x;
-  int_t y;
+struct PixelCoordinate
+{
+    int_t x;
+    int_t y;
 };
 
 class FrameBuffer
 {
-protected:
-  int_t m_width;
-  int_t m_height;
-  std::vector<Color> m_pixel_colors;
+  protected:
+    int_t m_width;
+    int_t m_height;
+    std::vector<Color> m_pixel_colors;
 
-  bool isInFrame(const PixelCoordinate& px) const;
+    bool isInFrame(const PixelCoordinate& px) const;
 
-public:
-  FrameBuffer(int_t width, int_t height);
+  public:
+    FrameBuffer(int_t width, int_t height);
 
-  Color& operator[](const PixelCoordinate& px);
-  const Color& operator[](const PixelCoordinate& px) const;
+    Color& operator[](const PixelCoordinate& px);
+    const Color& operator[](const PixelCoordinate& px) const;
 
-  void clear(const Color& color = BLACK);
+    void clear(const Color& color = BLACK);
 
-  int_t getWidth() const;
-  int_t getHeight() const;
-  const void* getRawData() const;
+    int_t getWidth() const;
+    int_t getHeight() const;
+    const void* getRawData() const;
 };
 
 }  // namespace sim

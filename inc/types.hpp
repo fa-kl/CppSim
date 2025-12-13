@@ -53,9 +53,10 @@ using real_t = double;
 /**
  * @brief A type for matrix dimensions.
  */
-typedef struct {
-  size_t rows;
-  size_t cols;
+typedef struct
+{
+    size_t rows;
+    size_t cols;
 } dimension_t;
 
 /**

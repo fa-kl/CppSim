@@ -17,11 +17,12 @@
 namespace sim
 {
 
-struct Vertex {
-  Vector point;
-  Color color;
+struct Vertex
+{
+    Vector point;
+    Color color;
 
-  Vertex(Vector p, Color c);
+    Vertex(Vector p, Color c);
 };
 
 }  // namespace sim

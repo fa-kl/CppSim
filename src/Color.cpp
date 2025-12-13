@@ -18,54 +18,59 @@ namespace sim
 
 Color::Color()
 {
-  red = 0;
-  blue = 0;
-  green = 0;
-  opacity = 0;
+    red = 0;
+    blue = 0;
+    green = 0;
+    opacity = 0;
 }
 
 Color::Color(uint8_t r, uint8_t g, uint8_t b, uint8_t o)
 {
-  red = r;
-  green = g;
-  blue = b;
-  opacity = o;
+    red = r;
+    green = g;
+    blue = b;
+    opacity = o;
 }
 
 Color::Color(real_t r, real_t g, real_t b, real_t o)
 {
-  if (r < 0 || r > 1) {
-    throw std::invalid_argument("All values must be within [0; 1].");
-  }
-  if (g < 0 || g > 1) {
-    throw std::invalid_argument("All values must be within [0; 1].");
-  }
-  if (b < 0 || b > 1) {
-    throw std::invalid_argument("All values must be within [0; 1].");
-  }
-  if (o < 0 || o > 1) {
-    throw std::invalid_argument("All values must be within [0; 1].");
-  }
-  red = static_cast<uint8_t>(round(255.0 * r));
-  green = static_cast<uint8_t>(round(255.0 * g));
-  blue = static_cast<uint8_t>(round(255.0 * b));
-  opacity = static_cast<uint8_t>(round(255.0 * o));
+    if (r < 0 || r > 1)
+    {
+        throw std::invalid_argument("All values must be within [0; 1].");
+    }
+    if (g < 0 || g > 1)
+    {
+        throw std::invalid_argument("All values must be within [0; 1].");
+    }
+    if (b < 0 || b > 1)
+    {
+        throw std::invalid_argument("All values must be within [0; 1].");
+    }
+    if (o < 0 || o > 1)
+    {
+        throw std::invalid_argument("All values must be within [0; 1].");
+    }
+    red = static_cast<uint8_t>(round(255.0 * r));
+    green = static_cast<uint8_t>(round(255.0 * g));
+    blue = static_cast<uint8_t>(round(255.0 * b));
+    opacity = static_cast<uint8_t>(round(255.0 * o));
 }
 
 Color mean(std::vector<Color> colors)
 {
-  real_t mean_red = 0.0;
-  real_t mean_green = 0.0;
-  real_t mean_blue = 0.0;
-  real_t mean_opacity = 0.0;
-  for (const Color& col : colors) {
-    mean_red += static_cast<real_t>(col.red) / 255.0;
-    mean_green += static_cast<real_t>(col.green) / 255.0;
-    mean_blue += static_cast<real_t>(col.blue) / 255.0;
-    mean_opacity += static_cast<real_t>(col.opacity) / 255.0;
-  }
-  real_t n = static_cast<real_t>(colors.size());
-  return {mean_red / n, mean_green / n, mean_blue / n, mean_opacity / n};
+    real_t mean_red = 0.0;
+    real_t mean_green = 0.0;
+    real_t mean_blue = 0.0;
+    real_t mean_opacity = 0.0;
+    for (const Color& col : colors)
+    {
+        mean_red += static_cast<real_t>(col.red) / 255.0;
+        mean_green += static_cast<real_t>(col.green) / 255.0;
+        mean_blue += static_cast<real_t>(col.blue) / 255.0;
+        mean_opacity += static_cast<real_t>(col.opacity) / 255.0;
+    }
+    real_t n = static_cast<real_t>(colors.size());
+    return {mean_red / n, mean_green / n, mean_blue / n, mean_opacity / n};
 }
 
 const Color WHITE = {(uint8_t)255, (uint8_t)255, (uint8_t)255, (uint8_t)255};

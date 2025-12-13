@@ -15,32 +15,38 @@ namespace sim
 
 Mesh operator*(const Transform& transform, const Mesh& mesh)
 {
-  Mesh result = mesh;
-  for (Triangle& triangle : result) {
-    for (Vertex& vert : triangle) {
-      vert.point = transform * vert.point;
+    Mesh result = mesh;
+    for (Triangle& triangle : result)
+    {
+        for (Vertex& vert : triangle)
+        {
+            vert.point = transform * vert.point;
+        }
     }
-  }
-  return result;
+    return result;
 }
 
 Mesh cullMesh(const Mesh& input_mesh, const Camera& camera)
 {
-  Mesh result;
-  result.reserve(input_mesh.size());
-  for (const Triangle& triangle : input_mesh) {
-    bool any_in_view = false;
-    for (const Vertex& vertex : triangle) {
-      if (camera.isInView(vertex.point)) {
-        any_in_view = true;
-        break;
-      }
+    Mesh result;
+    result.reserve(input_mesh.size());
+    for (const Triangle& triangle : input_mesh)
+    {
+        bool any_in_view = false;
+        for (const Vertex& vertex : triangle)
+        {
+            if (camera.isInView(vertex.point))
+            {
+                any_in_view = true;
+                break;
+            }
+        }
+        if (any_in_view)
+        {
+            result.push_back(triangle);
+        }
     }
-    if (any_in_view) {
-      result.push_back(triangle);
-    }
-  }
-  return result;
+    return result;
 }
 
 }  // namespace sim

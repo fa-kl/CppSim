@@ -20,7 +20,7 @@ BraceWrapping:
   BeforeCatch: true
   BeforeElse: true
   IndentBraces: false
-BreakBeforeBraces: Linux
+BreakBeforeBraces: Allman
 ColumnLimit: 120
 DerivePointerAlignment: false
 IncludeCategories:
@@ -32,5 +32,5 @@ IncludeCategories:
     Priority: 3
   - Regex: '^".*"'
     Priority: 4
-IndentWidth: 2
+IndentWidth: 4
 KeepEmptyLinesAtTheStartOfBlocks: false
