@@ -17,7 +17,7 @@
 namespace sim
 {
 
-typedef struct Vertex {
+struct Vertex {
   Vector point;
   Color color;
 

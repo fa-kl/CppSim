@@ -25,11 +25,11 @@ protected:
   real_t m_near;
   real_t m_far;
   real_t m_aspect;
-  Transform<3> m_transform;
+  Transform m_transform;
   Matrix m_projection;
 
 public:
-  Camera(const Transform<3>& transform,
+  Camera(const Transform& transform,
          real_t aspect = 16.0 / 9.0,
          real_t fov = deg2rad(60),
          real_t near = 0.1,
@@ -41,9 +41,9 @@ public:
 
   bool isInView(const Vector& world_point) const;
 
-  Transform<3> getTransform() const;
+  Transform getTransform() const;
 
-  void setTransform(const Transform<3>& transform);
+  void setTransform(const Transform& transform);
 
   Matrix getProjectionMatrix() const;
 

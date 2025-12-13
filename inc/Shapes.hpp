@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "Color.hpp"
+#include "Mesh.hpp"
 #include "Vector.hpp"
 #include "Vertex.hpp"
 #include "types.hpp"
@@ -22,9 +23,6 @@ namespace sim
 {
 
 struct Color;
-
-using Triangle = std::array<Vertex, 3>;
-using Mesh = std::vector<Triangle>;
 
 /**
  * @brief Abstract base class for all geometric 3D shapes.
@@ -179,8 +177,15 @@ public:
   std::vector<Vertex> vertices() const override;
 
   /**
-   * @brief Get the mesh of the sphere.
+   * @brief Get the mesh of the sphere with custom tessellation.
+   * @param delta Angular step size in radians.
    * @return Mesh.
+   */
+  Mesh mesh(real_t delta) const;
+
+  /**
+   * @brief Get the mesh of the sphere (override for Shape interface).
+   * @return Mesh with default tessellation.
    */
   Mesh mesh() const override;
 
@@ -280,6 +285,310 @@ public:
    * @brief Get the mesh of the cuboid.
    * @return Mesh.
    */
+  Mesh mesh() const override;
+
+  bool_t containsPoint(const Vector& point) const override;
+};
+
+/**
+ * @brief A cylinder shape defined by radius and height.
+ *
+ * @details Represents a cylinder centered at the origin with axis along the z-axis.
+ */
+class Cylinder : public Shape
+{
+protected:
+  /**
+   * @brief Radius of the cylinder.
+   */
+  real_t m_radius;
+
+  /**
+   * @brief Height of the cylinder.
+   */
+  real_t m_height;
+
+  /**
+   * @brief Color of the cylinder.
+   */
+  Color m_color;
+
+public:
+  /**
+   * @brief Construct a cylinder with given radius and height.
+   *
+   * @param radius Radius of the cylinder (must be > 0).
+   * @param height Height of the cylinder (must be > 0).
+   * @param color Color of the cylinder.
+   * @throws std::invalid_argument If radius or height is not positive.
+   */
+  Cylinder(real_t radius, real_t height, Color color);
+
+  /**
+   * @brief Get the radius of the cylinder.
+   * @return Radius.
+   */
+  real_t radius() const;
+
+  /**
+   * @brief Get the height of the cylinder.
+   * @return Height.
+   */
+  real_t height() const;
+
+  /**
+   * @brief Compute the volume of the cylinder.
+   * @details Volume = π r^2 h
+   * @return Volume of the cylinder.
+   */
+  real_t volume() const override;
+
+  Vector centroid() const override;
+
+  /**
+   * @brief Compute the moment of inertia about the centroid.
+   * @details For a solid cylinder: I_z = (1/2) m r^2, I_x = I_y = (1/12) m (3r^2 + h^2)
+   * @param rho Material density (mass per unit volume).
+   * @return Representative scalar inertia.
+   */
+  real_t inertia(real_t rho) const override;
+
+  /**
+   * @brief Get vertices approximating the cylinder.
+   * @param delta Angular step size in radians.
+   * @return Vertices approximating the cylinder.
+   */
+  std::vector<Vertex> vertices(real_t delta) const;
+
+  std::vector<Vertex> vertices() const override;
+
+  /**
+   * @brief Get the mesh of the cylinder with custom tessellation.
+   * @param delta Angular step size in radians.
+   * @return Mesh.
+   */
+  Mesh mesh(real_t delta) const;
+
+  Mesh mesh() const override;
+
+  bool_t containsPoint(const Vector& point) const override;
+};
+
+/**
+ * @brief A pyramid shape with a square base.
+ *
+ * @details Represents a pyramid centered at the origin with base in the xy-plane.
+ */
+class Pyramid : public Shape
+{
+protected:
+  /**
+   * @brief Base width/length of the pyramid.
+   */
+  real_t m_base;
+
+  /**
+   * @brief Height of the pyramid.
+   */
+  real_t m_height;
+
+  /**
+   * @brief Color of the pyramid.
+   */
+  Color m_color;
+
+public:
+  /**
+   * @brief Construct a pyramid with given base size and height.
+   *
+   * @param base Base width/length (must be > 0).
+   * @param height Height of the pyramid (must be > 0).
+   * @param color Color of the pyramid.
+   * @throws std::invalid_argument If base or height is not positive.
+   */
+  Pyramid(real_t base, real_t height, Color color);
+
+  /**
+   * @brief Get the base size of the pyramid.
+   * @return Base width/length.
+   */
+  real_t base() const;
+
+  /**
+   * @brief Get the height of the pyramid.
+   * @return Height.
+   */
+  real_t height() const;
+
+  /**
+   * @brief Compute the volume of the pyramid.
+   * @details Volume = (1/3) * base^2 * height
+   * @return Volume of the pyramid.
+   */
+  real_t volume() const override;
+
+  Vector centroid() const override;
+
+  /**
+   * @brief Compute the moment of inertia about the centroid.
+   * @param rho Material density (mass per unit volume).
+   * @return Representative scalar inertia.
+   */
+  real_t inertia(real_t rho) const override;
+
+  std::vector<Vertex> vertices() const override;
+
+  Mesh mesh() const override;
+
+  bool_t containsPoint(const Vector& point) const override;
+};
+
+/**
+ * @brief A cone shape defined by radius and height.
+ *
+ * @details Represents a cone centered at the origin with base in the xy-plane and apex along +z.
+ */
+class Cone : public Shape
+{
+protected:
+  /**
+   * @brief Radius of the cone base.
+   */
+  real_t m_radius;
+
+  /**
+   * @brief Height of the cone.
+   */
+  real_t m_height;
+
+  /**
+   * @brief Color of the cone.
+   */
+  Color m_color;
+
+public:
+  /**
+   * @brief Construct a cone with given radius and height.
+   *
+   * @param radius Radius of the base (must be > 0).
+   * @param height Height of the cone (must be > 0).
+   * @param color Color of the cone.
+   * @throws std::invalid_argument If radius or height is not positive.
+   */
+  Cone(real_t radius, real_t height, Color color);
+
+  /**
+   * @brief Get the radius of the cone.
+   * @return Radius.
+   */
+  real_t radius() const;
+
+  /**
+   * @brief Get the height of the cone.
+   * @return Height.
+   */
+  real_t height() const;
+
+  /**
+   * @brief Compute the volume of the cone.
+   * @details Volume = (1/3) π r^2 h
+   * @return Volume of the cone.
+   */
+  real_t volume() const override;
+
+  Vector centroid() const override;
+
+  /**
+   * @brief Compute the moment of inertia about the centroid.
+   * @param rho Material density (mass per unit volume).
+   * @return Representative scalar inertia.
+   */
+  real_t inertia(real_t rho) const override;
+
+  /**
+   * @brief Get vertices approximating the cone.
+   * @param delta Angular step size in radians.
+   * @return Vertices approximating the cone.
+   */
+  std::vector<Vertex> vertices(real_t delta) const;
+
+  std::vector<Vertex> vertices() const override;
+
+  /**
+   * @brief Get the mesh of the cone with custom tessellation.
+   * @param delta Angular step size in radians.
+   * @return Mesh.
+   */
+  Mesh mesh(real_t delta) const;
+
+  Mesh mesh() const override;
+
+  bool_t containsPoint(const Vector& point) const override;
+};
+
+/**
+ * @brief A convex polytope defined by arbitrary vertices.
+ *
+ * @details Represents a convex polyhedron defined by its vertices.
+ * The convex hull of the vertices is computed and triangulated.
+ */
+class Polytope : public Shape
+{
+protected:
+  /**
+   * @brief Vertices defining the polytope.
+   */
+  std::vector<Vector> m_vertices;
+
+  /**
+   * @brief Color of the polytope.
+   */
+  Color m_color;
+
+  /**
+   * @brief Precomputed centroid.
+   */
+  mutable Vector m_centroid;
+
+  /**
+   * @brief Whether centroid has been computed.
+   */
+  mutable bool m_centroid_computed;
+
+public:
+  /**
+   * @brief Construct a polytope from a set of vertices.
+   *
+   * @param vertices Vector of 3D vertices defining the polytope.
+   * @param color Color of the polytope.
+   * @throws std::invalid_argument If fewer than 4 vertices provided.
+   */
+  Polytope(const std::vector<Vector>& vertices, Color color);
+
+  /**
+   * @brief Get the vertices of the polytope.
+   * @return Vector of vertex positions.
+   */
+  const std::vector<Vector>& getVertices() const;
+
+  /**
+   * @brief Compute the volume of the polytope.
+   * @details Uses divergence theorem with centroid as reference point.
+   * @return Volume of the polytope.
+   */
+  real_t volume() const override;
+
+  Vector centroid() const override;
+
+  /**
+   * @brief Compute the moment of inertia about the centroid.
+   * @param rho Material density (mass per unit volume).
+   * @return Representative scalar inertia.
+   */
+  real_t inertia(real_t rho) const override;
+
+  std::vector<Vertex> vertices() const override;
+
   Mesh mesh() const override;
 
   bool_t containsPoint(const Vector& point) const override;

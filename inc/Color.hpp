@@ -15,7 +15,7 @@
 namespace sim
 {
 
-typedef struct Color {
+struct Color {
   uint8_t red;
   uint8_t green;
   uint8_t blue;
@@ -27,6 +27,8 @@ typedef struct Color {
 
   Color(real_t r, real_t g, real_t b, real_t o);
 };
+
+Color mean(std::vector<Color> colors);
 
 extern const Color WHITE;
 extern const Color BLACK;

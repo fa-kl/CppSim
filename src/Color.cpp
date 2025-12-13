@@ -52,6 +52,22 @@ Color::Color(real_t r, real_t g, real_t b, real_t o)
   opacity = static_cast<uint8_t>(round(255.0 * o));
 }
 
+Color mean(std::vector<Color> colors)
+{
+  real_t mean_red = 0.0;
+  real_t mean_green = 0.0;
+  real_t mean_blue = 0.0;
+  real_t mean_opacity = 0.0;
+  for (const Color& col : colors) {
+    mean_red += static_cast<real_t>(col.red) / 255.0;
+    mean_green += static_cast<real_t>(col.green) / 255.0;
+    mean_blue += static_cast<real_t>(col.blue) / 255.0;
+    mean_opacity += static_cast<real_t>(col.opacity) / 255.0;
+  }
+  real_t n = static_cast<real_t>(colors.size());
+  return {mean_red / n, mean_green / n, mean_blue / n, mean_opacity / n};
+}
+
 const Color WHITE = {(uint8_t)255, (uint8_t)255, (uint8_t)255, (uint8_t)255};
 const Color BLACK = {(uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)255};
 const Color TRANSPARENT = {(uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)0};

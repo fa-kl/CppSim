@@ -16,8 +16,8 @@
 namespace sim
 {
 
-Camera::Camera(const Transform<3>& transform, real_t aspect, real_t fov, real_t near, real_t far)
-    : m_transform(transform), m_aspect(aspect), m_fov(fov), m_near(near), m_far(far)
+Camera::Camera(const Transform& transform, real_t aspect, real_t fov, real_t near, real_t far)
+    : m_fov(fov), m_near(near), m_far(far), m_aspect(aspect), m_transform(transform)
 {
   if (aspect <= 0) {
     throw std::invalid_argument("Aspect ratio must be greater than zero");
@@ -48,7 +48,7 @@ Vector Camera::projectWorldToCamera(const Vector& world_point) const
   if (world_point.length() != 3) {
     throw std::invalid_argument("World point must be 3-dimensional");
   }
-  Transform<3> world_to_camera = inv(m_transform);
+  Transform world_to_camera = inv(m_transform);
   Vector camera_pos = world_to_camera * world_point;
   return camera_pos;
 }
@@ -89,12 +89,12 @@ bool Camera::isInView(const Vector& world_point) const
   }
 }
 
-Transform<3> Camera::getTransform() const
+Transform Camera::getTransform() const
 {
   return m_transform;
 }
 
-void Camera::setTransform(const Transform<3>& transform)
+void Camera::setTransform(const Transform& transform)
 {
   m_transform = transform;
 }

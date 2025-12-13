@@ -1,7 +1,7 @@
 /*****************************************************************************************
  * @file: Transform.hpp
  *
- * @brief: This file provides 2D rigid body transformations.
+ * @brief: This file provides 3D rigid body transformations.
  *
  * @author: fakl
  * @date: December 2025
@@ -10,9 +10,7 @@
 
 #pragma once
 
-#include <stdexcept>
-#include <type_traits>
-#include <vector>
+#include <array>
 
 #include "Matrix.hpp"
 #include "Rotation.hpp"
@@ -22,116 +20,154 @@
 namespace sim
 {
 
-template <size_t N = 3>
+/**
+ * @brief A class for handling 3D rigid body transformations (rotation + translation).
+ *
+ * @details Represents a rigid body transformation combining a rotation and a translation.
+ * The transformation is applied as: T(v) = R * v + t, where R is the rotation and t is
+ * the translation vector.
+ */
 class Transform
 {
 protected:
-  Rotation<N> m_rotation;
+  /**
+   * @brief The rotation component of the transformation.
+   */
+  Rotation m_rotation;
+
+  /**
+   * @brief The translation component of the transformation.
+   */
   Vector m_translation;
 
 public:
-  Transform() : m_rotation(Rotation<N>()), m_translation(zeros(3)) {}
+  /**
+   * @brief Default constructor: identity transformation.
+   */
+  Transform();
 
-  Transform(const Rotation<N>& R, const Vector& t) : m_rotation(R)
-  {
-    if (length(t) != N) {
-      throw std::invalid_argument("Translation vector must match transform dimension");
-    }
-    m_translation = t;
-  }
+  /**
+   * @brief Construct a transformation from rotation and translation.
+   * @param R Rotation component.
+   * @param t Translation vector (must be 3-dimensional).
+   * @throws std::invalid_argument If translation vector is not 3-dimensional.
+   */
+  Transform(const Rotation& R, const Vector& t);
 
-  // 2D: scalar angle
-  template <size_t M = N>
-  typename std::enable_if<M == 2, real_t>::type angle() const
-  {
-    return m_rotation.angle();
-  }
+  /**
+   * @brief Get the 4x4 homogeneous transformation matrix.
+   * @return 4x4 matrix representing the transformation.
+   */
+  Matrix getMatrix(void) const;
 
-  // 3D: Euler angles
-  template <size_t M = N>
-  typename std::enable_if<M == 3, EulerAngles_t>::type eulerAngles() const
-  {
-    return m_rotation.eulerAngles();
-  }
+  /**
+   * @brief Get the Euler angles of the rotation component.
+   * @return The Euler angles (roll, pitch, yaw).
+   */
+  EulerAngles eulerAngles() const;
 
-  Vector translation() const { return m_translation; }
+  /**
+   * @brief Get the translation component.
+   * @return The translation vector.
+   */
+  Vector translation() const;
 
-  Rotation<N> rotation() const { return m_rotation; }
+  /**
+   * @brief Get the rotation component.
+   * @return The rotation.
+   */
+  Rotation rotation() const;
 
-  std::vector<Vector> unitVectors() const { return m_rotation.unitVectors(); }
+  /**
+   * @brief Get the unit vectors of the rotated frame.
+   * @return Three 3-dimensional unit vectors.
+   */
+  std::array<Vector, 3UL> unitVectors() const;
 
-  friend Vector operator*(const Transform& T, const Vector& v) { return T.m_rotation * v + T.m_translation; }
+  /**
+   * @brief Apply transformation to a vector.
+   * @param T Transformation.
+   * @param v 3-dimensional vector.
+   * @return The transformed vector: R * v + t.
+   */
+  friend Vector operator*(const Transform& T, const Vector& v);
 
-  friend Transform operator*(const Transform& T1, const Transform& T2)
-  {
-    return Transform(T1.m_rotation * T2.m_rotation, T1.m_rotation * T2.m_translation + T1.m_translation);
-  }
+  /**
+   * @brief Compose two transformations.
+   * @param T1 First transformation.
+   * @param T2 Second transformation.
+   * @return The composed transformation T1 * T2 (apply T2 first, then T1).
+   */
+  friend Transform operator*(const Transform& T1, const Transform& T2);
 
-  friend Transform operator*(const Transform& T, const Rotation<N>& R)
-  {
-    return Transform(T.m_rotation * R, T.m_translation);
-  }
+  /**
+   * @brief Apply a rotation after a transformation.
+   * @param T Transformation.
+   * @param R Rotation.
+   * @return The composed transformation T * R.
+   */
+  friend Transform operator*(const Transform& T, const Rotation& R);
 
-  friend Transform operator*(const Rotation<N>& R, const Transform& T)
-  {
-    return Transform(R * T.m_rotation, R * T.m_translation);
-  }
+  /**
+   * @brief Apply a transformation after a rotation.
+   * @param R Rotation.
+   * @param T Transformation.
+   * @return The composed transformation R * T.
+   */
+  friend Transform operator*(const Rotation& R, const Transform& T);
 
-  friend Transform inv(const Transform& T)
-  {
-    Rotation<N> R_inv = inv(T.m_rotation);
-    return Transform(R_inv, R_inv * (-T.m_translation));
-  }
+  /**
+   * @brief Compute the inverse transformation.
+   * @param T Transformation.
+   * @return The inverse transformation.
+   */
+  friend Transform inv(const Transform& T);
 
-  friend std::ostream& operator<<(std::ostream& os, const Transform& T)
-  {
-    if constexpr (N == 2) {
-      os << vcat(hcat(T.m_rotation.getMatrix(), T.m_translation), {{0, 0, 1}});
-    } else if constexpr (N == 3) {
-      os << vcat(hcat(T.m_rotation.getMatrix(), T.m_translation), {{0, 0, 0, 1}});
-    } else {
-      throw std::invalid_argument("Invalid N.");
-    }
-    return os;
-  }
+  /**
+   * @brief Output transformation matrix to stream.
+   * @param os Output stream.
+   * @param T Transformation.
+   * @return Reference to the output stream.
+   */
+  friend std::ostream& operator<<(std::ostream& os, const Transform& T);
 };
 
-inline real_t angle(const Transform<2>& T)
-{
-  return T.angle();
-}
-
-inline EulerAngles_t eulerAngles(const Transform<3>& T)
+/**
+ * @brief Get the Euler angles from a transformation.
+ * @param T Transformation.
+ * @return The Euler angles (roll, pitch, yaw).
+ */
+inline EulerAngles eulerAngles(const Transform& T)
 {
   return T.eulerAngles();
 }
 
-inline Vector translation(const Transform<2>& T)
+/**
+ * @brief Get the translation vector from a transformation.
+ * @param T Transformation.
+ * @return The translation vector.
+ */
+inline Vector translation(const Transform& T)
 {
   return T.translation();
 }
 
-inline Vector translation(const Transform<3>& T)
-{
-  return T.translation();
-}
-
-inline Rotation<2> rotation(const Transform<2>& T)
-{
-  return T.rotation();
-}
-
-inline Rotation<3> rotation(const Transform<3>& T)
+/**
+ * @brief Get the rotation from a transformation.
+ * @param T Transformation.
+ * @return The rotation component.
+ */
+inline Rotation rotation(const Transform& T)
 {
   return T.rotation();
 }
 
-inline std::vector<Vector> unitVectors(const Transform<2>& T)
-{
-  return T.unitVectors();
-}
-
-inline std::vector<Vector> unitVectors(const Transform<3>& T)
+/**
+ * @brief Get the unit vectors of the rotated frame.
+ * @param T Transformation.
+ * @return Three 3-dimensional unit vectors.
+ */
+inline std::array<Vector, 3UL> unitVectors(const Transform& T)
 {
   return T.unitVectors();
 }

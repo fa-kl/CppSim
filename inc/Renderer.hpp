@@ -16,7 +16,9 @@
 
 #include "Camera.hpp"
 #include "Color.hpp"
+#include "FrameBuffer.hpp"
 #include "Matrix.hpp"
+#include "Mesh.hpp"
 #include "Rotation.hpp"
 #include "Shapes.hpp"
 #include "Transform.hpp"
@@ -32,59 +34,6 @@
 
 namespace sim
 {
-
-#pragma region PixelPosition
-
-/**
- * @brief Internal type for pixel position (framebuffer indexing only).
- */
-typedef struct {
-  int_t x;
-  int_t y;
-} PixelPosition;
-
-#pragma endregion
-
-#pragma region FrameBuffer
-
-class FrameBuffer
-{
-protected:
-  int_t m_width, m_height;
-  std::vector<Color> m_pixel_colors;
-
-  bool isInFrame(const PixelPosition& px) const;
-
-public:
-  FrameBuffer(int_t width, int_t height);
-
-  Color& operator[](PixelPosition px);
-  const Color& operator[](PixelPosition px) const;
-
-  void clear(const Color& color = BLACK);
-
-  int_t getWidth() const;
-  int_t getHeight() const;
-  const void* getRawData() const;
-};
-
-#pragma endregion
-
-#pragma region MeshTransform
-
-/**
- * @brief Apply a transformation to a mesh.
- */
-Mesh operator*(const Transform<3>& transform, const Mesh& mesh);
-
-/**
- * @brief Cull triangles that are completely outside the camera's view frustum.
- */
-Mesh cullMesh(const Mesh& input_mesh, const Camera& camera);
-
-#pragma endregion
-
-#pragma region Renderer
 
 /**
  * @brief 3D Renderer using SDL2 and a framebuffer.
@@ -102,17 +51,20 @@ protected:
   /**
    * @brief Draw a line using Bresenham's algorithm.
    */
-  void drawLine(int x0, int y0, int x1, int y1, const Color& color);
+  void drawLine(PixelCoordinate px1, PixelCoordinate px2, const Color& color);
 
   /**
    * @brief Fill a triangle using scanline rasterization.
    */
-  void fillTriangle(int x0, int y0, int x1, int y1, int x2, int y2, const Color& color);
+  void fillTriangle(PixelCoordinate px1,
+                    PixelCoordinate px2,
+                    PixelCoordinate px3,
+                    const Color& color);
 
   /**
    * @brief Convert NDC coordinates to screen coordinates.
    */
-  std::pair<int, int> ndcToScreen(const Vector& ndc) const;
+  PixelCoordinate ndcToScreen(const Vector& ndc) const;
 
 public:
   /**
@@ -170,7 +122,5 @@ public:
    */
   void pollEvents();
 };
-
-#pragma endregion
 
 }  // namespace sim
