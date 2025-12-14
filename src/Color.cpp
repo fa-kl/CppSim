@@ -73,39 +73,283 @@ Color mean(std::vector<Color> colors)
     return {mean_red / n, mean_green / n, mean_blue / n, mean_opacity / n};
 }
 
-const Color WHITE = {(uint8_t)255, (uint8_t)255, (uint8_t)255, (uint8_t)255};
-const Color BLACK = {(uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)255};
-const Color TRANSPARENT = {(uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)0};
-const Color RED = {(uint8_t)255, (uint8_t)0, (uint8_t)0, (uint8_t)255};
-const Color GREEN = {(uint8_t)0, (uint8_t)255, (uint8_t)0, (uint8_t)255};
-const Color BLUE = {(uint8_t)0, (uint8_t)0, (uint8_t)255, (uint8_t)255};
-const Color YELLOW = {(uint8_t)255, (uint8_t)255, (uint8_t)0, (uint8_t)255};
-const Color CYAN = {(uint8_t)0, (uint8_t)255, (uint8_t)255, (uint8_t)255};
-const Color MAGENTA = {(uint8_t)255, (uint8_t)0, (uint8_t)255, (uint8_t)255};
-const Color ORANGE = {(uint8_t)255, (uint8_t)165, (uint8_t)0, (uint8_t)255};
-const Color PURPLE = {(uint8_t)128, (uint8_t)0, (uint8_t)128, (uint8_t)255};
-const Color PINK = {(uint8_t)255, (uint8_t)192, (uint8_t)203, (uint8_t)255};
-const Color GRAY = {(uint8_t)128, (uint8_t)128, (uint8_t)128, (uint8_t)255};
-const Color SILVER = {(uint8_t)192, (uint8_t)192, (uint8_t)192, (uint8_t)255};
-const Color LIGHT_RED = {(uint8_t)255, (uint8_t)128, (uint8_t)128, (uint8_t)255};
-const Color LIGHT_GREEN = {(uint8_t)144, (uint8_t)238, (uint8_t)144, (uint8_t)255};
-const Color LIGHT_BLUE = {(uint8_t)173, (uint8_t)216, (uint8_t)230, (uint8_t)255};
-const Color LIGHT_YELLOW = {(uint8_t)255, (uint8_t)255, (uint8_t)224, (uint8_t)255};
-const Color LIGHT_CYAN = {(uint8_t)224, (uint8_t)255, (uint8_t)255, (uint8_t)255};
-const Color LIGHT_MAGENTA = {(uint8_t)255, (uint8_t)128, (uint8_t)255, (uint8_t)255};
-const Color LIGHT_ORANGE = {(uint8_t)255, (uint8_t)200, (uint8_t)124, (uint8_t)255};
-const Color LIGHT_PURPLE = {(uint8_t)200, (uint8_t)162, (uint8_t)200, (uint8_t)255};
-const Color LIGHT_PINK = {(uint8_t)255, (uint8_t)220, (uint8_t)225, (uint8_t)255};
-const Color LIGHT_GRAY = {(uint8_t)211, (uint8_t)211, (uint8_t)211, (uint8_t)255};
-const Color DARK_RED = {(uint8_t)139, (uint8_t)0, (uint8_t)0, (uint8_t)255};
-const Color DARK_GREEN = {(uint8_t)0, (uint8_t)100, (uint8_t)0, (uint8_t)255};
-const Color DARK_BLUE = {(uint8_t)0, (uint8_t)0, (uint8_t)139, (uint8_t)255};
-const Color DARK_YELLOW = {(uint8_t)204, (uint8_t)204, (uint8_t)0, (uint8_t)255};
-const Color DARK_CYAN = {(uint8_t)0, (uint8_t)139, (uint8_t)139, (uint8_t)255};
-const Color DARK_MAGENTA = {(uint8_t)139, (uint8_t)0, (uint8_t)139, (uint8_t)255};
-const Color DARK_ORANGE = {(uint8_t)255, (uint8_t)140, (uint8_t)0, (uint8_t)255};
-const Color DARK_PURPLE = {(uint8_t)75, (uint8_t)0, (uint8_t)130, (uint8_t)255};
-const Color DARK_PINK = {(uint8_t)231, (uint8_t)84, (uint8_t)128, (uint8_t)255};
-const Color DARK_GRAY = {(uint8_t)169, (uint8_t)169, (uint8_t)169, (uint8_t)255};
+Color interpolate(const Color& c1, const Color& c2, real_t t)
+{
+    // Clamp t to [0, 1]
+    t = std::clamp(t, 0.0, 1.0);
+    real_t s = 1.0 - t;
+
+    real_t r = s * static_cast<real_t>(c1.red) + t * static_cast<real_t>(c2.red);
+    real_t g = s * static_cast<real_t>(c1.green) + t * static_cast<real_t>(c2.green);
+    real_t b = s * static_cast<real_t>(c1.blue) + t * static_cast<real_t>(c2.blue);
+    real_t a = s * static_cast<real_t>(c1.opacity) + t * static_cast<real_t>(c2.opacity);
+
+    Color result;
+    result.red = static_cast<uint8_t>(std::clamp(r, 0.0, 255.0));
+    result.green = static_cast<uint8_t>(std::clamp(g, 0.0, 255.0));
+    result.blue = static_cast<uint8_t>(std::clamp(b, 0.0, 255.0));
+    result.opacity = static_cast<uint8_t>(std::clamp(a, 0.0, 255.0));
+
+    return result;
+}
+
+Color interpolate(const Color& c1, const Color& c2, const Color& c3, const Vector& weights)
+{
+    if (weights.length() != 3)
+    {
+        throw std::invalid_argument("Weights vector must have exactly 3 elements for barycentric interpolation");
+    }
+
+    real_t w = weights[0];
+    real_t u = weights[1];
+    real_t v = weights[2];
+
+    real_t r = w * static_cast<real_t>(c1.red) + u * static_cast<real_t>(c2.red) + v * static_cast<real_t>(c3.red);
+    real_t g =
+        w * static_cast<real_t>(c1.green) + u * static_cast<real_t>(c2.green) + v * static_cast<real_t>(c3.green);
+    real_t b = w * static_cast<real_t>(c1.blue) + u * static_cast<real_t>(c2.blue) + v * static_cast<real_t>(c3.blue);
+    real_t a =
+        w * static_cast<real_t>(c1.opacity) + u * static_cast<real_t>(c2.opacity) + v * static_cast<real_t>(c3.opacity);
+
+    Color result;
+    result.red = static_cast<uint8_t>(std::clamp(r, 0.0, 255.0));
+    result.green = static_cast<uint8_t>(std::clamp(g, 0.0, 255.0));
+    result.blue = static_cast<uint8_t>(std::clamp(b, 0.0, 255.0));
+    result.opacity = static_cast<uint8_t>(std::clamp(a, 0.0, 255.0));
+
+    return result;
+}
+
+Color Color::operator+(const Color& other) const
+{
+    return Color{static_cast<uint8_t>(std::min(255, static_cast<int>(red) + static_cast<int>(other.red))),
+                 static_cast<uint8_t>(std::min(255, static_cast<int>(green) + static_cast<int>(other.green))),
+                 static_cast<uint8_t>(std::min(255, static_cast<int>(blue) + static_cast<int>(other.blue))),
+                 static_cast<uint8_t>(std::min(255, static_cast<int>(opacity) + static_cast<int>(other.opacity)))};
+}
+
+Color Color::operator-(const Color& other) const
+{
+    return Color{static_cast<uint8_t>(std::max(0, static_cast<int>(red) - static_cast<int>(other.red))),
+                 static_cast<uint8_t>(std::max(0, static_cast<int>(green) - static_cast<int>(other.green))),
+                 static_cast<uint8_t>(std::max(0, static_cast<int>(blue) - static_cast<int>(other.blue))),
+                 static_cast<uint8_t>(std::max(0, static_cast<int>(opacity) - static_cast<int>(other.opacity)))};
+}
+
+Color Color::operator*(real_t scalar) const
+{
+    return Color{static_cast<uint8_t>(std::clamp(static_cast<int>(red * scalar), 0, 255)),
+                 static_cast<uint8_t>(std::clamp(static_cast<int>(green * scalar), 0, 255)),
+                 static_cast<uint8_t>(std::clamp(static_cast<int>(blue * scalar), 0, 255)),
+                 opacity};
+}
+
+Color Color::operator/(real_t scalar) const
+{
+    if (scalar == 0.0)
+    {
+        return Color::Black();
+    }
+    return *this * (1.0 / scalar);
+}
+
+Color& Color::operator+=(const Color& other)
+{
+    *this = *this + other;
+    return *this;
+}
+
+Color& Color::operator-=(const Color& other)
+{
+    *this = *this - other;
+    return *this;
+}
+
+Color& Color::operator*=(real_t scalar)
+{
+    *this = *this * scalar;
+    return *this;
+}
+
+Color& Color::operator/=(real_t scalar)
+{
+    *this = *this / scalar;
+    return *this;
+}
+
+Color operator*(real_t scalar, const Color& color)
+{
+    return color * scalar;
+}
+
+Color Color::White()
+{
+    return Color((uint8_t)255, (uint8_t)255, (uint8_t)255, (uint8_t)255);
+}
+
+Color Color::Black()
+{
+    return Color((uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)255);
+}
+
+Color Color::Transparent()
+{
+    return Color((uint8_t)0, (uint8_t)0, (uint8_t)0, (uint8_t)0);
+}
+
+Color Color::Red()
+{
+    return Color((uint8_t)255, (uint8_t)0, (uint8_t)0, (uint8_t)255);
+}
+
+Color Color::Green()
+{
+    return Color((uint8_t)0, (uint8_t)255, (uint8_t)0, (uint8_t)255);
+}
+
+Color Color::Blue()
+{
+    return Color((uint8_t)0, (uint8_t)0, (uint8_t)255, (uint8_t)255);
+}
+
+Color Color::Yellow()
+{
+    return Color((uint8_t)255, (uint8_t)255, (uint8_t)0, (uint8_t)255);
+}
+
+Color Color::Cyan()
+{
+    return Color((uint8_t)0, (uint8_t)255, (uint8_t)255, (uint8_t)255);
+}
+
+Color Color::Magenta()
+{
+    return Color((uint8_t)255, (uint8_t)0, (uint8_t)255, (uint8_t)255);
+}
+
+Color Color::Orange()
+{
+    return Color((uint8_t)255, (uint8_t)165, (uint8_t)0, (uint8_t)255);
+}
+
+Color Color::Purple()
+{
+    return Color((uint8_t)128, (uint8_t)0, (uint8_t)128, (uint8_t)255);
+}
+
+Color Color::Pink()
+{
+    return Color((uint8_t)255, (uint8_t)192, (uint8_t)203, (uint8_t)255);
+}
+
+Color Color::Gray()
+{
+    return Color((uint8_t)128, (uint8_t)128, (uint8_t)128, (uint8_t)255);
+}
+
+Color Color::Silver()
+{
+    return Color((uint8_t)192, (uint8_t)192, (uint8_t)192, (uint8_t)255);
+}
+
+Color Color::LightRed()
+{
+    return Color((uint8_t)255, (uint8_t)128, (uint8_t)128, (uint8_t)255);
+}
+
+Color Color::LightGreen()
+{
+    return Color((uint8_t)144, (uint8_t)238, (uint8_t)144, (uint8_t)255);
+}
+
+Color Color::LightBlue()
+{
+    return Color((uint8_t)173, (uint8_t)216, (uint8_t)230, (uint8_t)255);
+}
+
+Color Color::LightYellow()
+{
+    return Color((uint8_t)255, (uint8_t)255, (uint8_t)224, (uint8_t)255);
+}
+
+Color Color::LightCyan()
+{
+    return Color((uint8_t)224, (uint8_t)255, (uint8_t)255, (uint8_t)255);
+}
+
+Color Color::LightMagenta()
+{
+    return Color((uint8_t)255, (uint8_t)128, (uint8_t)255, (uint8_t)255);
+}
+
+Color Color::LightOrange()
+{
+    return Color((uint8_t)255, (uint8_t)200, (uint8_t)124, (uint8_t)255);
+}
+
+Color Color::LightPurple()
+{
+    return Color((uint8_t)200, (uint8_t)162, (uint8_t)200, (uint8_t)255);
+}
+
+Color Color::LightPink()
+{
+    return Color((uint8_t)255, (uint8_t)220, (uint8_t)225, (uint8_t)255);
+}
+
+Color Color::LightGray()
+{
+    return Color((uint8_t)211, (uint8_t)211, (uint8_t)211, (uint8_t)255);
+}
+
+Color Color::DarkRed()
+{
+    return Color((uint8_t)139, (uint8_t)0, (uint8_t)0, (uint8_t)255);
+}
+
+Color Color::DarkGreen()
+{
+    return Color((uint8_t)0, (uint8_t)100, (uint8_t)0, (uint8_t)255);
+}
+
+Color Color::DarkBlue()
+{
+    return Color((uint8_t)0, (uint8_t)0, (uint8_t)139, (uint8_t)255);
+}
+
+Color Color::DarkYellow()
+{
+    return Color((uint8_t)204, (uint8_t)204, (uint8_t)0, (uint8_t)255);
+}
+
+Color Color::DarkCyan()
+{
+    return Color((uint8_t)0, (uint8_t)139, (uint8_t)139, (uint8_t)255);
+}
+
+Color Color::DarkMagenta()
+{
+    return Color((uint8_t)139, (uint8_t)0, (uint8_t)139, (uint8_t)255);
+}
+
+Color Color::DarkOrange()
+{
+    return Color((uint8_t)255, (uint8_t)140, (uint8_t)0, (uint8_t)255);
+}
+
+Color Color::DarkPurple()
+{
+    return Color((uint8_t)75, (uint8_t)0, (uint8_t)130, (uint8_t)255);
+}
+
+Color Color::DarkPink()
+{
+    return Color((uint8_t)231, (uint8_t)84, (uint8_t)128, (uint8_t)255);
+}
+
+Color Color::DarkGray()
+{
+    return Color((uint8_t)169, (uint8_t)169, (uint8_t)169, (uint8_t)255);
+}
 
 }  // namespace sim

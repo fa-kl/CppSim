@@ -16,12 +16,22 @@
 namespace sim
 {
 
-Camera::Camera(const Transform& transform, real_t aspect, real_t fov, real_t near, real_t far)
-    : m_fov(fov), m_near(near), m_far(far), m_aspect(aspect), m_transform(transform)
+Camera::Camera(int_t width, int_t height, const Transform& transform, real_t fov, real_t near, real_t far)
+    : m_width(width),
+      m_height(height),
+      m_fov(fov),
+      m_near(near),
+      m_far(far),
+      m_aspect(static_cast<real_t>(m_width) / static_cast<real_t>(m_height)),
+      m_transform(transform)
 {
-    if (aspect <= 0)
+    if (width <= 0)
     {
-        throw std::invalid_argument("Aspect ratio must be greater than zero");
+        throw std::invalid_argument("Width must be greater than zero");
+    }
+    if (height <= 0)
+    {
+        throw std::invalid_argument("Height must be greater than zero");
     }
     if (fov <= 0)
     {
@@ -49,13 +59,7 @@ Camera::Camera(const Transform& transform, real_t aspect, real_t fov, real_t nea
 
 Vector Camera::projectWorldToCamera(const Vector& world_point) const
 {
-    if (world_point.length() != 3)
-    {
-        throw std::invalid_argument("World point must be 3-dimensional");
-    }
-    Transform world_to_camera = inv(m_transform);
-    Vector camera_pos = world_to_camera * world_point;
-    return camera_pos;
+    return inv(m_transform) * world_point;
 }
 
 Vector Camera::projectWorldToNDC(const Vector& world_point) const
@@ -99,6 +103,21 @@ bool Camera::isInView(const Vector& world_point) const
     {
         return false;
     }
+}
+
+int_t Camera::getWidth() const
+{
+    return m_width;
+}
+
+int_t Camera::getHeight() const
+{
+    return m_height;
+}
+
+int_t Camera::getNumberOfPixels() const
+{
+    return m_width * m_height;
 }
 
 Transform Camera::getTransform() const

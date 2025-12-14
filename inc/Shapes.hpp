@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "Color.hpp"
+#include "Matrix.hpp"
 #include "Mesh.hpp"
 #include "Vector.hpp"
 #include "Vertex.hpp"
@@ -60,13 +61,33 @@ class Shape
     virtual Vector centroid() const = 0;
 
     /**
-     * @brief Compute the (scalar) moment of inertia about the centroid.
+     * @brief Get the center of mass of the shape.
+     *
+     * @details Returns the center of mass for uniform density in shape-local coordinates.
+     * Same as centroid() for uniform density shapes.
+     *
+     * @return Center of mass position vector.
+     */
+    virtual Vector center_of_mass() const = 0;
+
+    /**
+     * @brief Compute the 3x3 inertia tensor about the center of mass.
+     *
+     * @details Returns the full 3x3 inertia tensor for the shape at the center of mass.
+     * The tensor is symmetric and positive-definite for physical objects.
      *
      * @param rho Material density (mass per unit volume).
-     * @return Scalar moment of inertia (for uniform density) about principal axes - for simple shapes this returns a
-     * representative value.
+     * @return 3x3 inertia tensor matrix.
      */
-    virtual real_t inertia(real_t rho) const = 0;
+    virtual Matrix inertia(real_t rho) const = 0;
+
+    /**
+     * @brief Check if a point is contained within the shape.
+     *
+     * @param point Point in shape-local coordinates.
+     * @return True if point is inside the shape, false otherwise.
+     */
+    virtual bool_t containsPoint(const Vector& point) const = 0;
 
     /**
      * @brief Get representative vertices of the shape for visualization.
@@ -79,6 +100,15 @@ class Shape
     virtual std::vector<Vertex> vertices() const = 0;
 
     /**
+     * @brief Get face indices for the shape.
+     *
+     * @details Returns triangle face indices for the shape's vertices.
+     *
+     * @return Vector of face indices (each is 3 vertex indices).
+     */
+    virtual std::vector<TriangleVertexIndices> faces() const = 0;
+
+    /**
      * @brief Get mesh for visualization.
      *
      * @details Returns Mesh based on the shape's vertices.
@@ -86,116 +116,6 @@ class Shape
      * @return Mesh.
      */
     virtual Mesh mesh() const = 0;
-
-    /**
-     * @brief Check if a point is contained within the shape.
-     *
-     * @param point Point in shape-local coordinates.
-     * @return True if point is inside the shape, false otherwise.
-     */
-    virtual bool_t containsPoint(const Vector& point) const = 0;
-};
-
-/**
- * @brief A sphere shape defined by its radius.
- *
- * @details Represents a sphere centered at the origin in local coordinates.
- */
-class Sphere : public Shape
-{
-  protected:
-    /**
-     * @brief Radius of the sphere.
-     */
-    real_t m_radius;
-
-    /**
-     * @brief Color of the sphere.
-     */
-    Color m_color;
-
-  public:
-    /**
-     * @brief Construct a sphere with given radius.
-     *
-     * @param radius Radius of the sphere (must be > 0).
-     * @param color Color of the sphere.
-     * @throws std::invalid_argument If radius is not positive.
-     */
-    explicit Sphere(real_t radius, Color color);
-
-    /**
-     * @brief Get the radius of the sphere.
-     *
-     * @return Radius.
-     */
-    real_t radius() const;
-
-    /**
-     * @brief Compute the volume of the sphere.
-     *
-     * @details Volume = (4/3) π r^3
-     *
-     * @return Volume of the sphere.
-     */
-    real_t volume() const override;
-
-    /**
-     * @brief Compute the centroid of the sphere.
-     *
-     * @details Always at origin for shape-local coordinates.
-     *
-     * @return Centroid position vector (0, 0, 0).
-     */
-    Vector centroid() const override;
-
-    /**
-     * @brief Compute the moment of inertia about the centroid.
-     *
-     * @details For a solid sphere: I = (2/5) * m * r^2 where m = ρ * V
-     *
-     * @param rho Material density (mass per unit volume).
-     * @return Scalar representative moment of inertia.
-     */
-    real_t inertia(real_t rho) const override;
-
-    /**
-     * @brief Get vertices approximating the sphere.
-     *
-     * @details Returns a tessellation of the sphere surface using angular step `delta`.
-     *
-     * @param delta Angular step size in radians (default: π/8).
-     * @return Vertices approximating the sphere.
-     */
-    std::vector<Vertex> vertices(real_t delta) const;
-
-    /**
-     * @brief Get vertices approximating the sphere (override for Shape interface).
-     *
-     * @return Vertices approximating the sphere.
-     */
-    std::vector<Vertex> vertices() const override;
-
-    /**
-     * @brief Get the mesh of the sphere with custom tessellation.
-     * @param delta Angular step size in radians.
-     * @return Mesh.
-     */
-    Mesh mesh(real_t delta) const;
-
-    /**
-     * @brief Get the mesh of the sphere (override for Shape interface).
-     * @return Mesh with default tessellation.
-     */
-    Mesh mesh() const override;
-
-    /**
-     * @brief Check if a point is contained within the sphere.
-     *
-     * @param point Point in shape-local coordinates.
-     * @return True if point is inside the sphere, false otherwise.
-     */
-    bool_t containsPoint(const Vector& point) const override;
 };
 
 /**
@@ -260,19 +180,22 @@ class Box : public Shape
 
     Vector centroid() const override;
 
+    Vector center_of_mass() const override;
+
     /**
-     * @brief Compute the (representative) moment of inertia about the centroid.
+     * @brief Compute the 3x3 inertia tensor about the center of mass.
      *
      * @details Principal inertias for a cuboid are:
      * I_x = (1/12) m (h^2 + d^2)
      * I_y = (1/12) m (w^2 + d^2)
      * I_z = (1/12) m (w^2 + h^2)
-     * This function returns the average of the three principal values as a scalar representative.
      *
      * @param rho Material density (mass per unit volume).
-     * @return Representative scalar inertia.
+     * @return 3x3 inertia tensor matrix.
      */
-    real_t inertia(real_t rho) const override;
+    Matrix inertia(real_t rho) const override;
+
+    bool_t containsPoint(const Vector& point) const override;
 
     /**
      * @brief Get the eight corner vertices of the cuboid.
@@ -282,12 +205,115 @@ class Box : public Shape
     std::vector<Vertex> vertices() const override;
 
     /**
+     * @brief Get face indices for the box.
+     * @return Vector of face indices.
+     */
+    std::vector<TriangleVertexIndices> faces() const override;
+
+    /**
      * @brief Get the mesh of the cuboid.
      * @return Mesh.
      */
     Mesh mesh() const override;
+};
 
+/**
+ * @brief A sphere shape defined by its radius.
+ *
+ * @details Represents a sphere centered at the origin in local coordinates.
+ */
+class Sphere : public Shape
+{
+  protected:
+    /**
+     * @brief Radius of the sphere.
+     */
+    real_t m_radius;
+
+    /**
+     * @brief Color of the sphere.
+     */
+    Color m_color;
+
+    /**
+     * @brief Angular step size for tessellation (in radians).
+     */
+    real_t m_delta;
+
+  public:
+    /**
+     * @brief Construct a sphere with given radius.
+     *
+     * @param radius Radius of the sphere (must be > 0).
+     * @param color Color of the sphere.
+     * @param delta Angular step size for tessellation in radians (default: π/8).
+     * @throws std::invalid_argument If radius is not positive.
+     */
+    explicit Sphere(real_t radius, Color color, real_t delta = M_PI / 8.0);
+
+    /**
+     * @brief Get the radius of the sphere.
+     *
+     * @return Radius.
+     */
+    real_t radius() const;
+
+    /**
+     * @brief Compute the volume of the sphere.
+     *
+     * @details Volume = (4/3) π r^3
+     *
+     * @return Volume of the sphere.
+     */
+    real_t volume() const override;
+
+    /**
+     * @brief Compute the centroid of the sphere.
+     *
+     * @details Always at origin for shape-local coordinates.
+     *
+     * @return Centroid position vector (0, 0, 0).
+     */
+    Vector centroid() const override;
+
+    Vector center_of_mass() const override;
+
+    /**
+     * @brief Compute the 3x3 inertia tensor about the center of mass.
+     *
+     * @details For a solid sphere: I = (2/5) * m * r^2 on the diagonal (isotropic).
+     *
+     * @param rho Material density (mass per unit volume).
+     * @return 3x3 inertia tensor matrix.
+     */
+    Matrix inertia(real_t rho) const override;
+
+    /**
+     * @brief Check if a point is contained within the sphere.
+     *
+     * @param point Point in shape-local coordinates.
+     * @return True if point is inside the sphere, false otherwise.
+     */
     bool_t containsPoint(const Vector& point) const override;
+
+    /**
+     * @brief Get vertices approximating the sphere (override for Shape interface).
+     *
+     * @return Vertices approximating the sphere.
+     */
+    std::vector<Vertex> vertices() const override;
+
+    /**
+     * @brief Get face indices for the sphere.
+     * @return Vector of face indices.
+     */
+    std::vector<TriangleVertexIndices> faces() const override;
+
+    /**
+     * @brief Get the mesh of the sphere (override for Shape interface).
+     * @return Mesh with tessellation using stored delta.
+     */
+    Mesh mesh() const override;
 };
 
 /**
@@ -313,6 +339,11 @@ class Cylinder : public Shape
      */
     Color m_color;
 
+    /**
+     * @brief Angular step size for tessellation (in radians).
+     */
+    real_t m_delta;
+
   public:
     /**
      * @brief Construct a cylinder with given radius and height.
@@ -320,9 +351,10 @@ class Cylinder : public Shape
      * @param radius Radius of the cylinder (must be > 0).
      * @param height Height of the cylinder (must be > 0).
      * @param color Color of the cylinder.
+     * @param delta Angular step size for tessellation in radians (default: π/8).
      * @throws std::invalid_argument If radius or height is not positive.
      */
-    Cylinder(real_t radius, real_t height, Color color);
+    Cylinder(real_t radius, real_t height, Color color, real_t delta = M_PI / 8.0);
 
     /**
      * @brief Get the radius of the cylinder.
@@ -345,33 +377,36 @@ class Cylinder : public Shape
 
     Vector centroid() const override;
 
+    Vector center_of_mass() const override;
+
     /**
-     * @brief Compute the moment of inertia about the centroid.
+     * @brief Compute the 3x3 inertia tensor about the center of mass.
      * @details For a solid cylinder: I_z = (1/2) m r^2, I_x = I_y = (1/12) m (3r^2 + h^2)
      * @param rho Material density (mass per unit volume).
-     * @return Representative scalar inertia.
+     * @return 3x3 inertia tensor matrix.
      */
-    real_t inertia(real_t rho) const override;
+    Matrix inertia(real_t rho) const override;
+
+    bool_t containsPoint(const Vector& point) const override;
 
     /**
      * @brief Get vertices approximating the cylinder.
-     * @param delta Angular step size in radians.
+     *
      * @return Vertices approximating the cylinder.
      */
-    std::vector<Vertex> vertices(real_t delta) const;
-
     std::vector<Vertex> vertices() const override;
 
     /**
-     * @brief Get the mesh of the cylinder with custom tessellation.
-     * @param delta Angular step size in radians.
-     * @return Mesh.
+     * @brief Get face indices for the cylinder.
+     * @return Vector of face indices.
      */
-    Mesh mesh(real_t delta) const;
+    std::vector<TriangleVertexIndices> faces() const override;
 
+    /**
+     * @brief Get the mesh of the cylinder (override for Shape interface).
+     * @return Mesh with tessellation using stored delta.
+     */
     Mesh mesh() const override;
-
-    bool_t containsPoint(const Vector& point) const override;
 };
 
 /**
@@ -429,16 +464,24 @@ class Pyramid : public Shape
 
     Vector centroid() const override;
 
+    Vector center_of_mass() const override;
+
     /**
-     * @brief Compute the moment of inertia about the centroid.
+     * @brief Compute the 3x3 inertia tensor about the center of mass.
      * @param rho Material density (mass per unit volume).
-     * @return Representative scalar inertia.
+     * @return 3x3 inertia tensor matrix.
      */
-    real_t inertia(real_t rho) const override;
+    Matrix inertia(real_t rho) const override;
 
     std::vector<Vertex> vertices() const override;
 
     Mesh mesh() const override;
+
+    /**
+     * @brief Get face indices for the pyramid.
+     * @return Vector of face indices.
+     */
+    std::vector<TriangleVertexIndices> faces() const override;
 
     bool_t containsPoint(const Vector& point) const override;
 };
@@ -466,6 +509,11 @@ class Cone : public Shape
      */
     Color m_color;
 
+    /**
+     * @brief Angular step size for tessellation (in radians).
+     */
+    real_t m_delta;
+
   public:
     /**
      * @brief Construct a cone with given radius and height.
@@ -473,9 +521,10 @@ class Cone : public Shape
      * @param radius Radius of the base (must be > 0).
      * @param height Height of the cone (must be > 0).
      * @param color Color of the cone.
+     * @param delta Angular step size for tessellation in radians (default: π/8).
      * @throws std::invalid_argument If radius or height is not positive.
      */
-    Cone(real_t radius, real_t height, Color color);
+    Cone(real_t radius, real_t height, Color color, real_t delta = M_PI / 8.0);
 
     /**
      * @brief Get the radius of the cone.
@@ -498,29 +547,32 @@ class Cone : public Shape
 
     Vector centroid() const override;
 
+    Vector center_of_mass() const override;
+
     /**
-     * @brief Compute the moment of inertia about the centroid.
+     * @brief Compute the 3x3 inertia tensor about the center of mass.
      * @param rho Material density (mass per unit volume).
-     * @return Representative scalar inertia.
+     * @return 3x3 inertia tensor matrix.
      */
-    real_t inertia(real_t rho) const override;
+    Matrix inertia(real_t rho) const override;
 
     /**
      * @brief Get vertices approximating the cone.
-     * @param delta Angular step size in radians.
+     *
      * @return Vertices approximating the cone.
      */
-    std::vector<Vertex> vertices(real_t delta) const;
-
     std::vector<Vertex> vertices() const override;
 
     /**
-     * @brief Get the mesh of the cone with custom tessellation.
-     * @param delta Angular step size in radians.
-     * @return Mesh.
+     * @brief Get face indices for the cone.
+     * @return Vector of face indices.
      */
-    Mesh mesh(real_t delta) const;
+    std::vector<TriangleVertexIndices> faces() const override;
 
+    /**
+     * @brief Get the mesh of the cone (override for Shape interface).
+     * @return Mesh with tessellation using stored delta.
+     */
     Mesh mesh() const override;
 
     bool_t containsPoint(const Vector& point) const override;
@@ -580,16 +632,24 @@ class Polytope : public Shape
 
     Vector centroid() const override;
 
+    Vector center_of_mass() const override;
+
     /**
-     * @brief Compute the moment of inertia about the centroid.
+     * @brief Compute the 3x3 inertia tensor about the center of mass.
      * @param rho Material density (mass per unit volume).
-     * @return Representative scalar inertia.
+     * @return 3x3 inertia tensor matrix.
      */
-    real_t inertia(real_t rho) const override;
+    Matrix inertia(real_t rho) const override;
 
     std::vector<Vertex> vertices() const override;
 
     Mesh mesh() const override;
+
+    /**
+     * @brief Get face indices for the polytope.
+     * @return Vector of face indices.
+     */
+    std::vector<TriangleVertexIndices> faces() const override;
 
     bool_t containsPoint(const Vector& point) const override;
 };

@@ -55,6 +55,20 @@ class Transform
     Transform(const Rotation& R, const Vector& t);
 
     /**
+     * @brief Construct a transformation from a translation.
+     * @param t Translation vector (must be 3-dimensional).
+     * @throws std::invalid_argument If translation vector is not 3-dimensional.
+     */
+    Transform(const Vector& t);
+
+    /**
+     * @brief Construct a transformation from a rotation.
+     * @param R Rotation component.
+     * @throws std::invalid_argument If translation vector is not 3-dimensional.
+     */
+    Transform(const Rotation& R);
+
+    /**
      * @brief Get the 4x4 homogeneous transformation matrix.
      * @return 4x4 matrix representing the transformation.
      */

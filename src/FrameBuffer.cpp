@@ -10,6 +10,7 @@
 
 #include "FrameBuffer.hpp"
 
+#include <limits>
 #include <stdexcept>
 
 namespace sim
@@ -21,7 +22,10 @@ bool FrameBuffer::isInFrame(const PixelCoordinate& px) const
 }
 
 FrameBuffer::FrameBuffer(int_t width, int_t height)
-    : m_width(width), m_height(height), m_pixel_colors(static_cast<uint_t>(width * height))
+    : m_width(width),
+      m_height(height),
+      m_pixel_colors(static_cast<uint_t>(width * height)),
+      m_depth_buffer(static_cast<uint_t>(width * height), std::numeric_limits<real_t>::infinity())
 {
     if (width <= 0 || height <= 0)
     {
@@ -56,6 +60,36 @@ const Color& FrameBuffer::operator[](const PixelCoordinate& px) const
 void FrameBuffer::clear(const Color& color)
 {
     std::fill(m_pixel_colors.begin(), m_pixel_colors.end(), color);
+    clearDepth();
+}
+
+void FrameBuffer::clearDepth()
+{
+    std::fill(m_depth_buffer.begin(), m_depth_buffer.end(), std::numeric_limits<real_t>::infinity());
+}
+
+bool FrameBuffer::testAndSetDepth(const PixelCoordinate& px, real_t depth)
+{
+    if (!isInFrame(px))
+    {
+        return false;
+    }
+    uint_t index = static_cast<uint_t>(px.y * m_width + px.x);
+    if (depth < m_depth_buffer[index])
+    {
+        m_depth_buffer[index] = depth;
+        return true;
+    }
+    return false;
+}
+
+real_t FrameBuffer::getDepth(const PixelCoordinate& px) const
+{
+    if (!isInFrame(px))
+    {
+        return std::numeric_limits<real_t>::infinity();
+    }
+    return m_depth_buffer[static_cast<uint_t>(px.y * m_width + px.x)];
 }
 
 int_t FrameBuffer::getWidth() const

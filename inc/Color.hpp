@@ -10,6 +10,9 @@
 
 #pragma once
 
+#include <algorithm>
+
+#include "Vector.hpp"
 #include "types.hpp"
 
 namespace sim
@@ -22,48 +25,81 @@ struct Color
     uint8_t blue;
     uint8_t opacity;
 
+    /* Constructors */
     Color();
-
     Color(uint8_t r, uint8_t g, uint8_t b, uint8_t o);
-
     Color(real_t r, real_t g, real_t b, real_t o);
+
+    /* Arithmetic operators */
+    Color operator+(const Color& other) const;
+    Color operator-(const Color& other) const;
+    Color operator*(real_t scalar) const;
+    Color operator/(real_t scalar) const;
+    Color& operator+=(const Color& other);
+    Color& operator-=(const Color& other);
+    Color& operator*=(real_t scalar);
+    Color& operator/=(real_t scalar);
+
+    /* Static color constants */
+    static Color White();
+    static Color Black();
+    static Color Transparent();
+    static Color Red();
+    static Color Green();
+    static Color Blue();
+    static Color Yellow();
+    static Color Cyan();
+    static Color Magenta();
+    static Color Orange();
+    static Color Purple();
+    static Color Pink();
+    static Color Gray();
+    static Color Silver();
+    static Color LightRed();
+    static Color LightGreen();
+    static Color LightBlue();
+    static Color LightYellow();
+    static Color LightCyan();
+    static Color LightMagenta();
+    static Color LightOrange();
+    static Color LightPurple();
+    static Color LightPink();
+    static Color LightGray();
+    static Color DarkRed();
+    static Color DarkGreen();
+    static Color DarkBlue();
+    static Color DarkYellow();
+    static Color DarkCyan();
+    static Color DarkMagenta();
+    static Color DarkOrange();
+    static Color DarkPurple();
+    static Color DarkPink();
+    static Color DarkGray();
 };
 
+/* Non-member operators*/
+Color operator*(real_t scalar, const Color& color);
+
+/* Non-member functions */
 Color mean(std::vector<Color> colors);
 
-extern const Color WHITE;
-extern const Color BLACK;
-extern const Color TRANSPARENT;
-extern const Color RED;
-extern const Color GREEN;
-extern const Color BLUE;
-extern const Color YELLOW;
-extern const Color CYAN;
-extern const Color MAGENTA;
-extern const Color ORANGE;
-extern const Color PURPLE;
-extern const Color PINK;
-extern const Color GRAY;
-extern const Color SILVER;
-extern const Color LIGHT_RED;
-extern const Color LIGHT_GREEN;
-extern const Color LIGHT_BLUE;
-extern const Color LIGHT_YELLOW;
-extern const Color LIGHT_CYAN;
-extern const Color LIGHT_MAGENTA;
-extern const Color LIGHT_ORANGE;
-extern const Color LIGHT_PURPLE;
-extern const Color LIGHT_PINK;
-extern const Color LIGHT_GRAY;
-extern const Color DARK_RED;
-extern const Color DARK_GREEN;
-extern const Color DARK_BLUE;
-extern const Color DARK_YELLOW;
-extern const Color DARK_CYAN;
-extern const Color DARK_MAGENTA;
-extern const Color DARK_ORANGE;
-extern const Color DARK_PURPLE;
-extern const Color DARK_PINK;
-extern const Color DARK_GRAY;
+/**
+ * @brief Linear interpolation between two colors.
+ * @param c1 First color.
+ * @param c2 Second color.
+ * @param t Interpolation parameter (0.0 = c1, 1.0 = c2).
+ * @return Interpolated color.
+ */
+Color interpolate(const Color& c1, const Color& c2, real_t t);
+
+/**
+ * @brief Barycentric interpolation between three colors.
+ * @param c1 First color.
+ * @param c2 Second color.
+ * @param c3 Third color.
+ * @param weights Barycentric weights (3D vector: w, u, v).
+ * @return Interpolated color.
+ */
+Color interpolate(const Color& c1, const Color& c2, const Color& c3, const Vector& weights);
 
 }  // namespace sim

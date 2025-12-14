@@ -19,6 +19,7 @@
 #include "FrameBuffer.hpp"
 #include "Matrix.hpp"
 #include "Mesh.hpp"
+#include "RigidBody.hpp"
 #include "Rotation.hpp"
 #include "Shapes.hpp"
 #include "Transform.hpp"
@@ -45,29 +46,32 @@ class Renderer
     SDL_Renderer* m_sdl_renderer;
     SDL_Texture* m_texture;
     FrameBuffer m_framebuffer;
-    int_t m_width, m_height;
+    Camera m_camera;
     bool m_should_close;
 
     /**
-     * @brief Draw a line using Bresenham's algorithm.
+     * @brief Draw a 1 pixel wide line between two world coordinates.
      */
-    void drawLine(PixelCoordinate px1, PixelCoordinate px2, const Color& color);
+    void drawLine(const Vector& v1, const Vector& v2, const Color& color);
 
     /**
-     * @brief Fill a triangle using scanline rasterization.
+     * @brief Fill a triangle based on it's world vertices.
+     *
+     * @details This method not only projects the vertices given in world coordinates
+     * onto the screen but also applies the correct colors to each pixel based on the
+     * vertex colors.
      */
-    void fillTriangle(PixelCoordinate px1, PixelCoordinate px2, PixelCoordinate px3, const Color& color);
-
-    /**
-     * @brief Convert NDC coordinates to screen coordinates.
-     */
-    PixelCoordinate ndcToScreen(const Vector& ndc) const;
+    void fillTriangle(const Vertex& v1, const Vertex& v2, const Vertex& v3);
 
   public:
     /**
-     * @brief Construct a renderer with specified window size.
+     * @brief Construct a renderer with specified window size and camera.
+     * @param width Window width in pixels.
+     * @param height Window height in pixels.
+     * @param camera Camera for rendering (will be fixed after construction).
+     * @param title Window title.
      */
-    Renderer(int_t width, int_t height, const std::string& title = "3D Renderer");
+    Renderer(const Camera& camera, const std::string& title = "3D Renderer");
 
     /**
      * @brief Destructor - cleanup SDL resources.
@@ -77,17 +81,34 @@ class Renderer
     /**
      * @brief Clear the framebuffer with a color.
      */
-    void clear(const Color& color = BLACK);
+    void clear(const Color& color = Color::Black());
 
     /**
      * @brief Render a mesh to the framebuffer.
+     * @param mesh The mesh to render (in world coordinates).
+     * @param line_color Color for rendering (currently unused in filled rendering).
      */
-    void renderMesh(const Mesh& mesh, const Camera& camera, const Color& line_color = WHITE);
+    void renderMesh(const Mesh& mesh, const Color& line_color = Color::White());
+
+    /**
+     * @brief Render a shape at a specific position and orientation.
+     * @param mesh The shape's mesh in local coordinates.
+     * @param transform The transform specifying position and orientation.
+     * @param color Color for rendering the shape.
+     */
+    void renderShape(const Mesh& mesh, const Transform& transform, const Color& color = Color::White());
+
+    /**
+     * @brief Render a rigid body.
+     * @param body The rigid body to render.
+     */
+    void renderBody(const RigidBody& body);
 
     /**
      * @brief Draw coordinate axes at origin.
+     * @param length Length of each axis.
      */
-    void drawAxes(const Camera& camera, real_t length = 1.0);
+    void renderWorldFrame(real_t length = 1.0);
 
     /**
      * @brief Present the framebuffer to the screen.

@@ -1,7 +1,7 @@
 /*****************************************************************************************
  * @file: Vertex.cpp
  *
- * @brief: Vertex type implementations for rendering.
+ * @brief: Vertex struct implementations for rendering.
  *
  * @author: fakl
  * @date: December 2025
@@ -15,11 +15,15 @@
 namespace sim
 {
 
-Vertex::Vertex(Vector p, Color c) : point(p), color(c)
+Vertex::Vertex(const Vector& p, const Color& c, const Vector& n) : position(p), color(c), normal(normalize(n))
 {
-    if (point.length() != 3)
+    if (position.length() != 3)
     {
-        throw std::invalid_argument("Point must be 3-dimensional");
+        throw std::invalid_argument("Position must be 3-dimensional");
+    }
+    if (normal.length() != 3)
+    {
+        throw std::invalid_argument("Normal must be 3-dimensional");
     }
 }
 

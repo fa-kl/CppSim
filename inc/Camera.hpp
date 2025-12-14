@@ -21,16 +21,19 @@ namespace sim
 class Camera
 {
   protected:
-    real_t m_fov;
-    real_t m_near;
-    real_t m_far;
-    real_t m_aspect;
+    const int_t m_width;
+    const int_t m_height;
+    const real_t m_fov;
+    const real_t m_near;
+    const real_t m_far;
+    const real_t m_aspect;
     Transform m_transform;
     Matrix m_projection;
 
   public:
-    Camera(const Transform& transform,
-           real_t aspect = 16.0 / 9.0,
+    Camera(int_t width,
+           int_t height,
+           const Transform& transform,
            real_t fov = deg2rad(60),
            real_t near = 0.1,
            real_t far = 100);
@@ -40,6 +43,12 @@ class Camera
     Vector projectWorldToNDC(const Vector& world_point) const;
 
     bool isInView(const Vector& world_point) const;
+
+    int_t getWidth() const;
+
+    int_t getHeight() const;
+
+    int_t getNumberOfPixels() const;
 
     Transform getTransform() const;
 

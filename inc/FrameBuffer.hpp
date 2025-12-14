@@ -13,16 +13,11 @@
 #include <vector>
 
 #include "Color.hpp"
+#include "PixelCoordinate.hpp"
 #include "types.hpp"
 
 namespace sim
 {
-
-struct PixelCoordinate
-{
-    int_t x;
-    int_t y;
-};
 
 class FrameBuffer
 {
@@ -30,6 +25,7 @@ class FrameBuffer
     int_t m_width;
     int_t m_height;
     std::vector<Color> m_pixel_colors;
+    std::vector<real_t> m_depth_buffer;
 
     bool isInFrame(const PixelCoordinate& px) const;
 
@@ -39,7 +35,11 @@ class FrameBuffer
     Color& operator[](const PixelCoordinate& px);
     const Color& operator[](const PixelCoordinate& px) const;
 
-    void clear(const Color& color = BLACK);
+    void clear(const Color& color = Color::Black());
+    void clearDepth();
+
+    bool testAndSetDepth(const PixelCoordinate& px, real_t depth);
+    real_t getDepth(const PixelCoordinate& px) const;
 
     int_t getWidth() const;
     int_t getHeight() const;

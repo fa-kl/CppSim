@@ -17,14 +17,17 @@ namespace sim
 
 Transform::Transform() : m_rotation(Rotation()), m_translation(zeros(3)) {}
 
-Transform::Transform(const Rotation& R, const Vector& t) : m_rotation(R)
+Transform::Transform(const Rotation& R, const Vector& t) : m_rotation(R), m_translation(t)
 {
-    if (length(t) != 3)
+    if (m_translation.length() != 3)
     {
         throw std::invalid_argument("Translation vector must match transform dimension");
     }
-    m_translation = t;
 }
+
+Transform::Transform(const Vector& t) : Transform(Rotation(), t) {}
+
+Transform::Transform(const Rotation& R) : Transform(R, zeros(3)) {}
 
 Matrix Transform::getMatrix(void) const
 {
